@@ -191,8 +191,6 @@ function showMainScreen() {
     document.getElementById('guest-info').style.display = 'none';
 
     document.getElementById('user-name').textContent = currentUser.name;
-    document.getElementById('user-role').textContent = currentUser.role;
-    document.getElementById('user-role').classList.add(currentUser.role);
 
     // Se for admin, mostrar apenas o painel administrativo
     if (currentUser.role === 'admin') {
@@ -385,7 +383,7 @@ async function loadMeats() {
                     ? `<img src="${imageUrl}" alt="${meat.name}" class="meat-card-image" loading="lazy" onerror="console.error('Erro ao carregar imagem:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">`
                     : '';
 
-                const placeholderHtml = `<div class="meat-card-image-placeholder" style="${imageUrl ? 'display:none;' : ''}">🥩 Sem imagem</div>`;
+                const placeholderHtml = `<div class="meat-card-image-placeholder" style="${imageUrl ? 'display:none;' : ''}"><i class="bi bi-image" style="font-size: 2rem;"></i> Sem imagem</div>`;
 
                 card.innerHTML = `
                     ${imageHtml}
@@ -400,7 +398,7 @@ async function loadMeats() {
                             </div>
                         ` : ''}
                         <div class="${meat.available_count > 0 ? 'available' : 'unavailable'}">
-                            ${meat.available_count > 0 ? `✓ ${meat.available_count} peças disponíveis` : '✗ Indisponível'}
+                            ${meat.available_count > 0 ? `<span><i class="bi bi-check-circle"></i> ${meat.available_count} peças disponíveis</span>` : '<span><i class="bi bi-x-circle"></i> Indisponível</span>'}
                         </div>
                     </div>
                 `;
@@ -435,7 +433,7 @@ async function searchMeats() {
                     ? `<img src="${imageUrl}" alt="${meat.name}" class="meat-card-image" loading="lazy" onerror="console.error('Erro ao carregar imagem:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">`
                     : '';
 
-                const placeholderHtml = `<div class="meat-card-image-placeholder" style="${imageUrl ? 'display:none;' : ''}">🥩 Sem imagem</div>`;
+                const placeholderHtml = `<div class="meat-card-image-placeholder" style="${imageUrl ? 'display:none;' : ''}"><i class="bi bi-image" style="font-size: 2rem;"></i> Sem imagem</div>`;
 
                 card.innerHTML = `
                     ${imageHtml}
@@ -450,7 +448,7 @@ async function searchMeats() {
                             </div>
                         ` : ''}
                         <div class="${meat.available_count > 0 ? 'available' : 'unavailable'}">
-                            ${meat.available_count > 0 ? `✓ ${meat.available_count} peças disponíveis` : '✗ Indisponível'}
+                            ${meat.available_count > 0 ? `<span><i class="bi bi-check-circle"></i> ${meat.available_count} peças disponíveis</span>` : '<span><i class="bi bi-x-circle"></i> Indisponível</span>'}
                         </div>
                     </div>
                 `;
@@ -476,7 +474,7 @@ async function showMeatDetails(meatId) {
                 if (itemsData.data && itemsData.data.length > 0) {
                     availableItemsHtml = `
                         <div style="background: rgba(0, 168, 89, 0.1); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 20px;">
-                            <p style="color: var(--success-color); font-weight: 600; margin: 0;">✓ ${meat.available_count} peças disponíveis</p>
+                            <p style="color: var(--success-color); font-weight: 600; margin: 0;"><i class="bi bi-check-circle"></i> ${meat.available_count} peças disponíveis</p>
                         </div>
                         <h3 style="margin-bottom: 16px; font-size: 1.2rem;">Peças Disponíveis:</h3>
                         <div style="max-height: 400px; overflow-y: auto; margin: 15px 0;">
@@ -487,7 +485,7 @@ async function showMeatDetails(meatId) {
                                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                                         <div>
                                             <p style="font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">${item.code}</p>
-                                            ${item.weight_kg ? `<p style="font-size: 14px; color: var(--text-secondary); margin: 4px 0;">⚖️ ${item.weight_kg}kg</p>` : ''}
+                                            ${item.weight_kg ? `<p style="font-size: 14px; color: var(--text-secondary); margin: 4px 0;"><i class="bi bi-scale"></i> ${item.weight_kg}kg</p>` : ''}
                                             ${item.fixed_price ? `<p style="font-size: 16px; font-weight: 700; color: var(--primary-color); margin-top: 8px;">R$ ${parseFloat(item.fixed_price).toFixed(2)}</p>` : ''}
                                         </div>
                                         <button onclick="event.stopPropagation(); openReservationModal('${item.id}')" style="white-space: nowrap;">Reservar</button>
@@ -543,47 +541,32 @@ async function loadAvailability() {
         const dates = await apiRequest('/availability/dates');
         if (dates.data) {
             container.innerHTML = '';
+            const today = new Date().toISOString().split('T')[0];
             dates.data.forEach(date => {
-                const dateCard = document.createElement('div');
-                dateCard.className = 'date-card';
-                dateCard.innerHTML = `
-                    <h3>${formatDate(date.date)}</h3>
-                    <div id="slots-${date.id}" class="slots-grid"></div>
-                `;
-                container.appendChild(dateCard);
-                loadSlots(date.id, date.date);
+                // Mostrar apenas datas abertas e futuras
+                if (date.is_open && date.date >= today) {
+                    const dateCard = document.createElement('div');
+                    dateCard.className = 'date-card';
+                    dateCard.innerHTML = `
+                        <h3>${formatDate(date.date)}</h3>
+                        <p><strong>Status:</strong> <span><i class="bi bi-check-circle"></i> Disponível para agendamento</span></p>
+                        ${date.notes ? `<p><strong>Observações:</strong> ${date.notes}</p>` : ''}
+                    `;
+                    container.appendChild(dateCard);
+                }
             });
+            if (container.innerHTML === '') {
+                container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhuma data disponível</p>';
+            }
         }
     } catch (error) {
         container.innerHTML = '<div class="error">Erro ao carregar disponibilidade</div>';
     }
 }
 
-async function loadSlots(dateId, date) {
-    const container = document.getElementById(`slots-${dateId}`);
-    try {
-        const slots = await apiRequest(`/availability/dates/${date}/slots`);
-        if (slots.data) {
-            container.innerHTML = '';
-            slots.data.forEach(slot => {
-                const slotItem = document.createElement('div');
-                slotItem.className = `slot-item ${slot.available_capacity > 0 ? 'available' : 'full'}`;
-                slotItem.innerHTML = `
-                    <div>${slot.start_at} - ${slot.end_at}</div>
-                    <div style="font-size: 12px;">${slot.available_capacity || 0}/${slot.capacity} disponíveis</div>
-                `;
-                container.appendChild(slotItem);
-            });
-        }
-    } catch (error) {
-        container.innerHTML = '<div class="error">Erro ao carregar horários</div>';
-    }
-}
-
 // Reservas
 let selectedMeatItemId = null;
 let selectedDate = null;
-let selectedSlot = null;
 
 function openReservationModal(meatItemId) {
     // Verificar se está logado
@@ -606,7 +589,6 @@ function openReservationModal(meatItemId) {
 
     // Limpar seleções anteriores
     document.getElementById('reservation-date').value = '';
-    document.getElementById('reservation-date-info').style.display = 'none';
     document.getElementById('reservation-notes').value = '';
 }
 
@@ -620,13 +602,13 @@ async function loadDatesForReservation() {
         const dates = await apiRequest('/availability/dates');
         availableDatesData = dates.data;
         select.innerHTML = '<option value="">Selecione uma data</option>';
-        // Filtrar apenas datas abertas com horários configurados e futuras
+        // Filtrar apenas datas abertas e futuras
         const today = new Date().toISOString().split('T')[0];
         dates.data.forEach(date => {
-            if (date.is_open && date.opening_time && date.closing_time && date.date >= today) {
+            if (date.is_open && date.date >= today) {
                 const option = document.createElement('option');
                 option.value = date.id;
-                option.textContent = `${formatDate(date.date)} (${date.opening_time} às ${date.closing_time})`;
+                option.textContent = formatDate(date.date);
                 option.dataset.dateId = date.id;
                 select.appendChild(option);
             }
@@ -640,26 +622,7 @@ async function loadDatesForReservation() {
     }
 }
 
-function updateReservationDateInfo() {
-    const select = document.getElementById('reservation-date');
-    const dateId = select.value;
-    const infoDiv = document.getElementById('reservation-date-info');
-    const timeRange = document.getElementById('reservation-time-range');
-
-    if (dateId) {
-        const date = availableDatesData.find(d => d.id === dateId);
-        if (date && date.opening_time && date.closing_time) {
-            timeRange.textContent = `${date.opening_time} às ${date.closing_time}`;
-            infoDiv.style.display = 'block';
-        } else {
-            infoDiv.style.display = 'none';
-        }
-    } else {
-        infoDiv.style.display = 'none';
-    }
-}
-
-// Função removida - não é mais necessária com o novo sistema simplificado de horários
+// Função removida - não é mais necessária sem horários
 
 async function handleCreateReservation(event) {
     event.preventDefault();
@@ -707,7 +670,6 @@ async function handleCreateReservation(event) {
             // Limpar formulário
             document.getElementById('reservation-notes').value = '';
             document.getElementById('reservation-date').value = '';
-            document.getElementById('reservation-date-info').style.display = 'none';
             document.getElementById('reservation-meat-item-id').value = '';
             showSection('my-reservations');
             loadMyReservations();
@@ -721,7 +683,7 @@ async function handleCreateReservation(event) {
                 const errors = Object.values(data.errors).flat();
                 errorMsg = errors.join(', ');
             } else if (response.status === 409) {
-                errorMsg = 'Esta peça ou horário não está mais disponível. Tente novamente.';
+                errorMsg = 'Esta peça não está mais disponível. Tente novamente.';
             } else if (response.status === 422) {
                 errorMsg = 'Dados inválidos. Verifique os campos preenchidos.';
             } else if (response.status === 401) {
@@ -770,7 +732,6 @@ async function loadMyReservations(showAll = false) {
                         ${reservation.meat_item?.weight_kg ? `<p><strong>Peso:</strong> ${reservation.meat_item.weight_kg}kg</p>` : ''}
                         ${reservation.meat_item?.fixed_price ? `<p><strong>Preço:</strong> R$ ${parseFloat(reservation.meat_item.fixed_price).toFixed(2)}</p>` : ''}
                         <p><strong>Data de retirada:</strong> ${formatDate(reservation.available_date?.date)}</p>
-                        <p><strong>Horário:</strong> ${reservation.available_date?.opening_time || ''} às ${reservation.available_date?.closing_time || ''}</p>
                         <p><strong>Status:</strong> <span class="status ${reservation.status}">${getStatusText(reservation.status)}</span></p>
                         ${reservation.notes ? `<p><strong>Observações:</strong> ${reservation.notes}</p>` : ''}
                         <p style="font-size: 12px; color: var(--text-light); margin-top: 8px;">Reservado em: ${formatDateTime(reservation.created_at)}</p>
@@ -795,7 +756,7 @@ function showReservationHistory() {
     if (!filterBar.querySelector('.filter-date-range')) {
         const dateRange = document.createElement('span');
         dateRange.className = 'filter-date-range';
-        dateRange.textContent = '📅 Mostrando todo o histórico';
+        dateRange.innerHTML = '<i class="bi bi-calendar3"></i> Mostrando todo o histórico';
         filterBar.appendChild(dateRange);
     } else {
         filterBar.querySelector('.filter-date-range').textContent = '📅 Mostrando todo o histórico';
@@ -808,7 +769,7 @@ function showRecentReservations() {
     const filterBar = document.querySelector('#my-reservations-section .filter-bar');
     const dateRange = filterBar.querySelector('.filter-date-range');
     if (dateRange) {
-        dateRange.textContent = '📅 Últimos 7 dias';
+        dateRange.innerHTML = '<i class="bi bi-calendar3"></i> Últimos 7 dias';
     }
 
     loadMyReservations(false);
@@ -867,6 +828,7 @@ async function loadAdminMeats() {
                 return;
             }
             data.data.forEach(meat => {
+                meat.price_per_kg = undefined;
                 const card = document.createElement('div');
                 card.className = 'meat-card';
 
@@ -879,7 +841,7 @@ async function loadAdminMeats() {
                     ? `<img src="${imageUrl}" alt="${meat.name}" class="meat-card-image" loading="lazy" onerror="console.error('Erro ao carregar imagem:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">`
                     : '';
 
-                const placeholderHtml = `<div class="meat-card-image-placeholder" style="${imageUrl ? 'display:none;' : ''}">🥩 Sem imagem</div>`;
+                const placeholderHtml = `<div class="meat-card-image-placeholder" style="${imageUrl ? 'display:none;' : ''}"><i class="bi bi-image" style="font-size: 2rem;"></i> Sem imagem</div>`;
 
                 card.innerHTML = `
                     ${imageHtml}
@@ -894,10 +856,10 @@ async function loadAdminMeats() {
                             </div>
                         ` : ''}
                         <div class="${meat.available_count > 0 ? 'available' : 'unavailable'}" style="margin-bottom: 12px;">
-                            ${meat.available_count > 0 ? `✓ ${meat.available_count} peças disponíveis` : '✗ Indisponível'}
+                            ${meat.available_count > 0 ? `<span><i class="bi bi-check-circle"></i> ${meat.available_count} peças disponíveis</span>` : '<span><i class="bi bi-x-circle"></i> Indisponível</span>'}
                         </div>
                         <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-                            <strong>Status:</strong> ${meat.is_active ? '✓ Ativa' : '✗ Inativa'}
+                            <strong>Status:</strong> <span>${meat.is_active ? '<i class="bi bi-check-circle"></i> Ativa' : '<i class="bi bi-x-circle"></i> Inativa'}</span>
                         </p>
                         <div style="display: flex; gap: 8px; margin-top: 12px;">
                             <button onclick="event.stopPropagation(); editMeat('${meat.id}')" style="flex: 1;">Editar</button>
@@ -914,7 +876,7 @@ async function loadAdminMeats() {
 }
 
 function showCreateMeatForm() {
-    document.getElementById('admin-meat-modal-title').textContent = 'Nova Carne';
+        document.getElementById('admin-meat-modal-title').innerHTML = '<i class="bi bi-plus-circle"></i> Nova Carne';
     document.getElementById('admin-meat-id').value = '';
     document.getElementById('admin-meat-name').value = '';
     document.getElementById('admin-meat-slug').value = '';
@@ -923,7 +885,7 @@ function showCreateMeatForm() {
     document.getElementById('admin-meat-image').value = '';
     document.getElementById('admin-meat-image-file').value = '';
     document.getElementById('admin-meat-image-preview').style.display = 'none';
-    document.getElementById('admin-meat-image-text').textContent = '📷 Escolher Imagem';
+    document.getElementById('admin-meat-image-text').innerHTML = '<i class="bi bi-camera"></i> Escolher Imagem';
     document.getElementById('admin-meat-active').checked = true;
     document.getElementById('admin-meat-modal').style.display = 'block';
 }
@@ -933,7 +895,7 @@ async function editMeat(meatId) {
         const data = await apiRequest(`/admin/meats/${meatId}`);
         const meat = data.data;
 
-        document.getElementById('admin-meat-modal-title').textContent = 'Editar Carne';
+        document.getElementById('admin-meat-modal-title').innerHTML = '<i class="bi bi-pencil"></i> Editar Carne';
         document.getElementById('admin-meat-id').value = meat.id;
         document.getElementById('admin-meat-name').value = meat.name;
         document.getElementById('admin-meat-slug').value = meat.slug;
@@ -946,13 +908,12 @@ async function editMeat(meatId) {
         const preview = document.getElementById('admin-meat-image-preview');
         const text = document.getElementById('admin-meat-image-text');
         if (meat.image_url) {
-            const imageUrl = normalizeImageUrl(meat.image_url);
-            preview.src = imageUrl;
+            preview.src = normalizeImageUrl(meat.image_url);
             preview.style.display = 'block';
-            text.textContent = '✓ Imagem atual';
+            text.innerHTML = '<i class="bi bi-check-circle"></i> Imagem atual';
         } else {
             preview.style.display = 'none';
-            text.textContent = '📷 Escolher Imagem';
+            text.innerHTML = '<i class="bi bi-camera"></i> Escolher Imagem';
         }
 
         // Limpar input de arquivo
@@ -973,7 +934,7 @@ function previewImage(input, previewId) {
         reader.onload = function(e) {
             preview.src = e.target.result;
             preview.style.display = 'block';
-            text.textContent = '✓ Imagem selecionada';
+            text.innerHTML = '<i class="bi bi-check-circle"></i> Imagem selecionada';
         };
         reader.readAsDataURL(input.files[0]);
     }
@@ -1051,7 +1012,7 @@ async function handleSaveMeat(event) {
             document.getElementById('admin-meat-image').value = '';
             document.getElementById('admin-meat-image-file').value = '';
             document.getElementById('admin-meat-image-preview').style.display = 'none';
-            document.getElementById('admin-meat-image-text').textContent = '📷 Escolher Imagem';
+            document.getElementById('admin-meat-image-text').innerHTML = '<i class="bi bi-camera"></i> Escolher Imagem';
             document.getElementById('admin-meat-active').checked = true;
             // Recarregar lista
             loadAdminMeats();
@@ -1088,11 +1049,9 @@ async function deleteMeat(meatId) {
 }
 
 function showCreateDateForm() {
-    document.getElementById('admin-date-modal-title').textContent = 'Nova Data';
+        document.getElementById('admin-date-modal-title').innerHTML = '<i class="bi bi-calendar-plus"></i> Nova Data';
     document.getElementById('admin-date-id').value = '';
     document.getElementById('admin-date-date').value = '';
-    document.getElementById('admin-date-opening-time').value = '07:00';
-    document.getElementById('admin-date-closing-time').value = '14:00';
     document.getElementById('admin-date-open').checked = true;
     document.getElementById('admin-date-notes').value = '';
     document.getElementById('admin-date-modal').style.display = 'block';
@@ -1105,8 +1064,6 @@ async function handleSaveDate(event) {
 
     const dateData = {
         date: document.getElementById('admin-date-date').value,
-        opening_time: document.getElementById('admin-date-opening-time').value,
-        closing_time: document.getElementById('admin-date-closing-time').value,
         is_open: document.getElementById('admin-date-open').checked,
         notes: document.getElementById('admin-date-notes').value || null,
     };
@@ -1139,78 +1096,6 @@ async function handleSaveDate(event) {
     }
 }
 
-function showCreateSlotForm(dateId = null) {
-    document.getElementById('admin-slot-id').value = '';
-    document.getElementById('admin-slot-date-id').value = dateId || '';
-    document.getElementById('admin-slot-start').value = '';
-    document.getElementById('admin-slot-end').value = '';
-    document.getElementById('admin-slot-capacity').value = '1';
-
-    // Carregar datas disponíveis
-    loadDatesForSlotSelect();
-    document.getElementById('admin-slot-modal').style.display = 'block';
-}
-
-async function loadDatesForSlotSelect() {
-    const select = document.getElementById('admin-slot-date-select');
-    try {
-        const data = await apiRequest('/admin/available-dates');
-        select.innerHTML = '<option value="">Selecione uma data</option>';
-        if (data.data) {
-            data.data.forEach(date => {
-                const option = document.createElement('option');
-                option.value = date.id;
-                option.textContent = formatDate(date.date);
-                if (date.id === document.getElementById('admin-slot-date-id').value) {
-                    option.selected = true;
-                }
-                select.appendChild(option);
-            });
-        }
-    } catch (error) {
-        showMessage('Erro ao carregar datas', 'error');
-    }
-}
-
-async function handleSaveSlot(event) {
-    event.preventDefault();
-    const id = document.getElementById('admin-slot-id').value;
-    const isEdit = !!id;
-
-    const slotData = {
-        available_date_id: document.getElementById('admin-slot-date-select').value,
-        start_at: document.getElementById('admin-slot-start').value,
-        end_at: document.getElementById('admin-slot-end').value,
-        capacity: parseInt(document.getElementById('admin-slot-capacity').value),
-    };
-
-    try {
-        const url = isEdit ? `${API_BASE}/admin/pickup-slots/${id}` : `${API_BASE}/admin/pickup-slots`;
-        const method = isEdit ? 'PATCH' : 'POST';
-
-        const response = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify(slotData)
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showMessage(isEdit ? 'Horário atualizado com sucesso!' : 'Horário criado com sucesso!', 'success');
-            closeModal('admin-slot-modal');
-            loadAdminDates();
-        } else {
-            const errorMsg = data.errors ? Object.values(data.errors).flat().join(', ') : data.message;
-            showMessage(errorMsg || 'Erro ao salvar', 'error');
-        }
-    } catch (error) {
-        showMessage('Erro de conexão', 'error');
-    }
-}
 
 async function loadAdminReservations(showAll = false) {
     const container = document.getElementById('admin-reservations-list');
@@ -1245,15 +1130,14 @@ async function loadAdminReservations(showAll = false) {
                         ${reservation.meat_item?.weight_kg ? `<p><strong>Peso:</strong> ${reservation.meat_item.weight_kg}kg</p>` : ''}
                         ${reservation.meat_item?.fixed_price ? `<p><strong>Preço:</strong> R$ ${parseFloat(reservation.meat_item.fixed_price).toFixed(2)}</p>` : ''}
                         <p><strong>Data de retirada:</strong> ${formatDate(reservation.available_date?.date)}</p>
-                        <p><strong>Horário:</strong> ${reservation.available_date?.opening_time || ''} às ${reservation.available_date?.closing_time || ''}</p>
                         <p><strong>Status:</strong> <span class="status ${reservation.status}">${getStatusText(reservation.status)}</span></p>
                         ${reservation.notes ? `<p><strong>Observações:</strong> ${reservation.notes}</p>` : ''}
                         <p style="font-size: 12px; color: var(--text-light); margin-top: 8px;">Reservado em: ${formatDateTime(reservation.created_at)}</p>
                     </div>
                     <div class="actions">
                         ${reservation.status === 'reserved' ? `
-                            <button onclick="fulfillReservation('${reservation.id}')" style="background: var(--success-color);">✓ Concluir Retirada</button>
-                            <button onclick="adminCancelReservation('${reservation.id}')" style="background: var(--danger-color);">✗ Cancelar</button>
+                            <button onclick="fulfillReservation('${reservation.id}')" style="background: var(--success-color);"><i class="bi bi-check-circle"></i> Concluir Retirada</button>
+                            <button onclick="adminCancelReservation('${reservation.id}')" style="background: var(--danger-color);"><i class="bi bi-x-circle"></i> Cancelar</button>
                         ` : ''}
                     </div>
                 `;
@@ -1271,7 +1155,7 @@ function showAdminReservationHistory() {
     if (filterBar) {
         const dateRange = filterBar.querySelector('.filter-date-range');
         if (dateRange) {
-            dateRange.textContent = '📅 Mostrando todo o histórico';
+            dateRange.innerHTML = '<i class="bi bi-calendar3"></i> Mostrando todo o histórico';
         }
     }
 }
@@ -1282,7 +1166,7 @@ function showAdminRecentReservations() {
     if (filterBar) {
         const dateRange = filterBar.querySelector('.filter-date-range');
         if (dateRange) {
-            dateRange.textContent = '📅 Últimos 7 dias';
+            dateRange.innerHTML = '<i class="bi bi-calendar3"></i> Últimos 7 dias';
         }
     }
 }
@@ -1306,8 +1190,7 @@ async function loadAdminDates() {
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div>
                             <h3>${formatDate(date.date)}</h3>
-                            <p><strong>Status:</strong> ${date.is_open ? '✓ Aberta' : '✗ Fechada'}</p>
-                            ${date.opening_time && date.closing_time ? `<p><strong>Horário:</strong> ${date.opening_time} às ${date.closing_time}</p>` : '<p style="color: var(--warning-color);"><strong>⚠ Horário não configurado</strong></p>'}
+                            <p><strong>Status:</strong> <span>${date.is_open ? '<i class="bi bi-check-circle"></i> Aberta' : '<i class="bi bi-x-circle"></i> Fechada'}</span></p>
                             ${date.notes ? `<p><strong>Observações:</strong> ${date.notes}</p>` : ''}
                         </div>
                         <div>
@@ -1329,11 +1212,9 @@ async function editDate(dateId) {
         const data = await apiRequest(`/admin/available-dates/${dateId}`);
         const date = data.data;
 
-        document.getElementById('admin-date-modal-title').textContent = 'Editar Data';
+        document.getElementById('admin-date-modal-title').innerHTML = '<i class="bi bi-pencil"></i> Editar Data';
         document.getElementById('admin-date-id').value = date.id;
         document.getElementById('admin-date-date').value = date.date;
-        document.getElementById('admin-date-opening-time').value = date.opening_time || '07:00';
-        document.getElementById('admin-date-closing-time').value = date.closing_time || '14:00';
         document.getElementById('admin-date-open').checked = date.is_open;
         document.getElementById('admin-date-notes').value = date.notes || '';
         document.getElementById('admin-date-modal').style.display = 'block';
@@ -1487,3 +1368,169 @@ window.onclick = function(event) {
     });
 }
 
+// Funções de validação em tempo real
+function validateLoginEmail() {
+    const emailInput = document.getElementById('login-email');
+    const errorEl = document.getElementById('login-email-error');
+    const email = emailInput.value.trim();
+
+    if (!email) {
+        errorEl.textContent = '';
+        emailInput.classList.remove('error', 'success');
+        return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        errorEl.textContent = 'Por favor, insira um e-mail válido';
+        emailInput.classList.add('error');
+        emailInput.classList.remove('success');
+        return false;
+    }
+
+    errorEl.textContent = '';
+    emailInput.classList.remove('error');
+    emailInput.classList.add('success');
+    return true;
+}
+
+function validateLoginPassword() {
+    const passwordInput = document.getElementById('login-password');
+    const errorEl = document.getElementById('login-password-error');
+    const password = passwordInput.value;
+
+    if (!password) {
+        errorEl.textContent = '';
+        passwordInput.classList.remove('error', 'success');
+        return false;
+    }
+
+    if (password.length < 8) {
+        errorEl.textContent = 'A senha deve ter no mínimo 8 caracteres';
+        passwordInput.classList.add('error');
+        passwordInput.classList.remove('success');
+        return false;
+    }
+
+    errorEl.textContent = '';
+    passwordInput.classList.remove('error');
+    passwordInput.classList.add('success');
+    return true;
+}
+
+function validateRegisterName() {
+    const nameInput = document.getElementById('register-name');
+    const errorEl = document.getElementById('register-name-error');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        errorEl.textContent = '';
+        nameInput.classList.remove('error', 'success');
+        return false;
+    }
+
+    if (name.length < 3) {
+        errorEl.textContent = 'O nome deve ter no mínimo 3 caracteres';
+        nameInput.classList.add('error');
+        nameInput.classList.remove('success');
+        return false;
+    }
+
+    errorEl.textContent = '';
+    nameInput.classList.remove('error');
+    nameInput.classList.add('success');
+    return true;
+}
+
+function validateRegisterEmail() {
+    const emailInput = document.getElementById('register-email');
+    const errorEl = document.getElementById('register-email-error');
+    const email = emailInput.value.trim();
+
+    if (!email) {
+        errorEl.textContent = '';
+        emailInput.classList.remove('error', 'success');
+        return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        errorEl.textContent = 'Por favor, insira um e-mail válido';
+        emailInput.classList.add('error');
+        emailInput.classList.remove('success');
+        return false;
+    }
+
+    errorEl.textContent = '';
+    emailInput.classList.remove('error');
+    emailInput.classList.add('success');
+    return true;
+}
+
+function validateRegisterPassword() {
+    const passwordInput = document.getElementById('register-password');
+    const errorEl = document.getElementById('register-password-error');
+    const password = passwordInput.value;
+
+    if (!password) {
+        errorEl.textContent = '';
+        passwordInput.classList.remove('error', 'success');
+        return false;
+    }
+
+    if (password.length < 8) {
+        errorEl.textContent = 'A senha deve ter no mínimo 8 caracteres';
+        passwordInput.classList.add('error');
+        passwordInput.classList.remove('success');
+        return false;
+    }
+
+    // Verificar se tem pelo menos uma letra e um número
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+
+    if (!hasLetter || !hasNumber) {
+        errorEl.textContent = 'A senha deve conter letras e números';
+        passwordInput.classList.add('error');
+        passwordInput.classList.remove('success');
+        return false;
+    }
+
+    errorEl.textContent = '';
+    passwordInput.classList.remove('error');
+    passwordInput.classList.add('success');
+
+    // Revalidar confirmação se já preenchida
+    const confirmInput = document.getElementById('register-password-confirm');
+    if (confirmInput.value) {
+        validateRegisterPasswordConfirm();
+    }
+
+    return true;
+}
+
+function validateRegisterPasswordConfirm() {
+    const passwordInput = document.getElementById('register-password');
+    const confirmInput = document.getElementById('register-password-confirm');
+    const errorEl = document.getElementById('register-password-confirm-error');
+    const password = passwordInput.value;
+    const confirm = confirmInput.value;
+
+    if (!confirm) {
+        errorEl.textContent = '';
+        confirmInput.classList.remove('error', 'success');
+        return false;
+    }
+
+    if (password !== confirm) {
+        errorEl.textContent = 'As senhas não coincidem';
+        confirmInput.classList.add('error');
+        confirmInput.classList.remove('success');
+        return false;
+    }
+
+    errorEl.textContent = '';
+    confirmInput.classList.remove('error');
+    confirmInput.classList.add('success');
+    return true;
+}

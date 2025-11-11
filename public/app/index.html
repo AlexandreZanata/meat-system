@@ -6,19 +6,30 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Sistema de Agendamento de Carnes</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/app/style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🥩 Sistema de Agendamento de Carnes</h1>
-            <div id="user-info" class="user-info" style="display: none;">
-                <span id="user-name"></span>
-                <span id="user-role" class="badge"></span>
-                <button onclick="logout()">Sair</button>
-            </div>
-            <div id="guest-info" class="guest-info" style="display: none;">
-                <button onclick="showAuthScreen()" class="btn-login">Entrar / Cadastrar</button>
+            <div class="header-content">
+                <div class="header-left">
+                    <i class="bi bi-shop"></i>
+                </div>
+                <div class="header-right">
+                    <div id="user-info" class="user-info" style="display: none;">
+                        <span id="user-name" class="user-name-display"></span>
+                        <button onclick="logout()" class="btn-logout" title="Sair">
+                            <i class="bi bi-x-square"></i>
+                        </button>
+                    </div>
+                    <div id="guest-info" class="guest-info" style="display: none;">
+                        <button onclick="showAuthScreen()" class="btn-login">
+                            <i class="bi bi-person-circle"></i>
+                            <span>Entrar</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -32,15 +43,17 @@
 
                 <!-- Formulário de Login -->
                 <div id="login-form" class="form-container">
-                    <h2>Login</h2>
+                    <h2><i class="bi bi-box-arrow-in-right"></i> Login</h2>
                     <form onsubmit="handleLogin(event)">
                         <div class="form-group">
                             <label>E-mail:</label>
-                            <input type="email" id="login-email" required>
+                            <label for="login-email"></label><input type="email" id="login-email" required onblur="validateLoginEmail()">
+                            <small id="login-email-error" class="form-error"></small>
                         </div>
                         <div class="form-group">
                             <label>Senha:</label>
-                            <input type="password" id="login-password" required>
+                            <label for="login-password"></label><input type="password" id="login-password" required oninput="validateLoginPassword()">
+                            <small id="login-password-error" class="form-error"></small>
                         </div>
                         <button type="submit">Entrar</button>
                     </form>
@@ -48,27 +61,31 @@
 
                 <!-- Formulário de Registro -->
                 <div id="register-form" class="form-container" style="display: none;">
-                    <h2>Registrar</h2>
+                    <h2><i class="bi bi-person-plus"></i> Registrar</h2>
                     <form onsubmit="handleRegister(event)">
                         <div class="form-group">
                             <label>Nome:</label>
-                            <input type="text" id="register-name" required>
+                            <label for="register-name"></label><input type="text" id="register-name" required oninput="validateRegisterName()">
+                            <small id="register-name-error" class="form-error"></small>
                         </div>
                         <div class="form-group">
                             <label>E-mail:</label>
-                            <input type="email" id="register-email" required>
+                            <label for="register-email"></label><input type="email" id="register-email" required onblur="validateRegisterEmail()">
+                            <small id="register-email-error" class="form-error"></small>
                         </div>
                         <div class="form-group">
                             <label>Senha:</label>
-                            <input type="password" id="register-password" required>
+                            <label for="register-password"></label><input type="password" id="register-password" required oninput="validateRegisterPassword()">
+                            <small id="register-password-error" class="form-error"></small>
                         </div>
                         <div class="form-group">
                             <label>Confirmar Senha:</label>
-                            <input type="password" id="register-password-confirm" required>
+                            <label for="register-password-confirm"></label><input type="password" id="register-password-confirm" required oninput="validateRegisterPasswordConfirm()">
+                            <small id="register-password-confirm-error" class="form-error"></small>
                         </div>
                         <div class="form-group">
                             <label>Telefone (opcional):</label>
-                            <input type="text" id="register-phone">
+                            <label for="register-phone"></label><input type="text" id="register-phone">
                         </div>
                         <button type="submit">Registrar</button>
                     </form>
@@ -87,38 +104,41 @@
 
             <!-- Seção: Catálogo -->
             <div id="catalog-section" class="section">
-                <h2>🥩 Catálogo de Carnes</h2>
+                <h2><i class="bi bi-grid-3x3-gap"></i></h2>
                 <div class="search-bar">
-                    <input type="text" id="search-meat" placeholder="🔍 Buscar carnes..." onkeyup="searchMeats()">
+                    <div class="search-input-wrapper">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="search-meat" placeholder="Buscar carnes..." onkeyup="searchMeats()">
+                    </div>
                 </div>
                 <div id="meats-list" class="meats-grid"></div>
             </div>
 
             <!-- Seção: Disponibilidade -->
             <div id="availability-section" class="section" style="display: none;">
-                <h2>Datas e Horários Disponíveis</h2>
+                <h2><i class="bi bi-calendar-check"></i></h2>
                 <div id="dates-list"></div>
             </div>
 
             <!-- Seção: Minhas Reservas -->
             <div id="my-reservations-section" class="section" style="display: none;">
-                <h2>Minhas Reservas</h2>
+                <h2><i class="bi bi-list-check"></i></h2>
                 <div class="filter-bar">
-                    <select id="filter-status" onchange="showRecentReservations()">
+                    <label for="filter-status"></label><select id="filter-status" onchange="showRecentReservations()">
                         <option value="">Todos os Status</option>
                         <option value="reserved" selected>Reservadas</option>
                         <option value="canceled">Canceladas</option>
                         <option value="fulfilled">Concluídas</option>
                     </select>
-                    <button class="btn-history" onclick="showReservationHistory()">📋 Ver Histórico Completo</button>
-                    <span class="filter-date-range">📅 Últimos 7 dias</span>
+                    <button class="btn-history" onclick="showReservationHistory()"><i class="bi bi-clock-history"></i> Ver Histórico Completo</button>
+                    <span class="filter-date-range"><i class="bi bi-calendar3"></i> Últimos 7 dias</span>
                 </div>
                 <div id="reservations-list"></div>
             </div>
 
             <!-- Seção: Admin -->
             <div id="admin-section" class="section" style="display: none;">
-                <h2>Painel Administrativo</h2>
+                <h2><i class="bi bi-gear"></i></h2>
                 <div class="admin-tabs">
                     <button class="admin-tab active" onclick="showAdminTab('admin-meats', this); return false;">Carnes</button>
                     <button class="admin-tab" onclick="showAdminTab('admin-reservations', this); return false;">Reservas</button>
@@ -126,25 +146,26 @@
                 </div>
 
                 <div id="admin-meats" class="admin-content">
-                    <h3>Gerenciar Carnes</h3>
-                    <button onclick="showCreateMeatForm()">+ Nova Carne</button>
+                    <h3><i class="bi bi-database"></i> Gerenciar Carnes</h3>
+                    <div style="padding: 12px; background: white; border-bottom: 1px solid var(--border-color);">
+                        <button onclick="showCreateMeatForm()" style="width: 100%;"><i class="bi bi-plus-circle"></i> Nova Carne</button>
+                    </div>
                     <div id="admin-meats-list"></div>
                 </div>
 
                 <div id="admin-reservations" class="admin-content" style="display: none;">
-                    <h3>Todas as Reservas</h3>
+                    <h3><i class="bi bi-list-ul"></i> Todas as Reservas</h3>
                     <div class="filter-bar">
-                        <button class="btn-history" onclick="showAdminReservationHistory()">📋 Ver Histórico Completo</button>
-                        <span class="filter-date-range">📅 Últimos 7 dias</span>
+                        <button class="btn-history" onclick="showAdminReservationHistory()"><i class="bi bi-clock-history"></i> Ver Histórico Completo</button>
+                        <span class="filter-date-range"><i class="bi bi-calendar3"></i> Últimos 7 dias</span>
                     </div>
                     <div id="admin-reservations-list"></div>
                 </div>
 
                 <div id="admin-dates" class="admin-content" style="display: none;">
-                    <h3>Gerenciar Datas</h3>
-                    <div style="margin-bottom: 15px;">
-                        <button onclick="showCreateDateForm()">+ Nova Data</button>
-                        <button onclick="showCreateSlotForm()" style="background: #388e3c; margin-left: 10px;">+ Novo Horário</button>
+                    <h3><i class="bi bi-calendar-event"></i> Gerenciar Datas</h3>
+                    <div style="padding: 12px; background: white; border-bottom: 1px solid var(--border-color);">
+                        <button onclick="showCreateDateForm()" style="width: 100%;"><i class="bi bi-calendar-plus"></i> Nova Data</button>
                     </div>
                     <div id="admin-dates-list"></div>
                 </div>
@@ -163,21 +184,16 @@
         <div id="reservation-modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <span class="close" onclick="closeModal('reservation-modal')">&times;</span>
-                <h2>Nova Reserva</h2>
+                <h2><i class="bi bi-plus-circle"></i> Nova Reserva</h2>
                 <form onsubmit="handleCreateReservation(event)">
                     <input type="hidden" id="reservation-meat-item-id">
                     <div class="form-group">
                         <label>Data de Retirada:</label>
-                        <select id="reservation-date" onchange="updateReservationDateInfo()" required></select>
-                        <div id="reservation-date-info" style="margin-top: 8px; padding: 12px; background: rgba(0, 168, 89, 0.1); border-radius: var(--radius-sm); display: none;">
-                            <p style="margin: 0; font-size: 14px; color: var(--success-color);">
-                                <strong>Horário de funcionamento:</strong> <span id="reservation-time-range"></span>
-                            </p>
-                        </div>
+                        <label for="reservation-date"></label><select id="reservation-date" required></select>
                     </div>
                     <div class="form-group">
                         <label>Observações (opcional):</label>
-                        <textarea id="reservation-notes" placeholder="Alguma observação sobre sua reserva..."></textarea>
+                        <label for="reservation-notes"></label><textarea id="reservation-notes" placeholder="Alguma observação sobre sua reserva..."></textarea>
                     </div>
                     <button type="submit">Confirmar Reserva</button>
                 </form>
@@ -188,36 +204,36 @@
         <div id="admin-meat-modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <span class="close" onclick="closeModal('admin-meat-modal')">&times;</span>
-                <h2 id="admin-meat-modal-title">Nova Carne</h2>
+                <h2 id="admin-meat-modal-title"><i class="bi bi-plus-circle"></i> Nova Carne</h2>
                 <form onsubmit="handleSaveMeat(event)">
                     <input type="hidden" id="admin-meat-id">
                     <div class="form-group">
                         <label>Nome *:</label>
-                        <input type="text" id="admin-meat-name" required>
+                        <label for="admin-meat-name"></label><input type="text" id="admin-meat-name" required>
                     </div>
                     <div class="form-group">
                         <label>Slug (URL amigável) *:</label>
-                        <input type="text" id="admin-meat-slug" required>
+                        <label for="admin-meat-slug"></label><input type="text" id="admin-meat-slug" required>
                     </div>
                     <div class="form-group">
                         <label>Descrição:</label>
-                        <textarea id="admin-meat-description"></textarea>
+                        <label for="admin-meat-description"></label><textarea id="admin-meat-description"></textarea>
                     </div>
                     <div class="form-group">
                         <label>Preço por kg (R$):</label>
-                        <input type="number" step="0.01" id="admin-meat-price">
+                        <label for="admin-meat-price"></label><input type="number" step="0.01" id="admin-meat-price">
                     </div>
                     <div class="form-group">
                         <label>Imagem da Carne:</label>
                         <div class="image-upload-container">
                             <label class="image-upload-btn">
                                 <input type="file" id="admin-meat-image-file" accept="image/*" onchange="previewImage(this, 'admin-meat-image-preview')">
-                                <span id="admin-meat-image-text">📷 Escolher Imagem</span>
+                                <span id="admin-meat-image-text"><i class="bi bi-camera"></i> Escolher Imagem</span>
                             </label>
-                            <img id="admin-meat-image-preview" class="image-preview" style="display: none;">
+                            <img id="admin-meat-image-preview" class="image-preview" style="display: none;" alt="carne" src="">
                             <input type="hidden" id="admin-meat-image-url">
                             <p style="margin-top: 8px; font-size: 12px; color: var(--text-light);">Ou informe uma URL:</p>
-                            <input type="url" id="admin-meat-image" placeholder="https://exemplo.com/imagem.jpg" style="margin-top: 8px;">
+                            <label for="admin-meat-image"></label><input type="url" id="admin-meat-image" placeholder="https://exemplo.com/imagem.jpg" style="margin-top: 8px;">
                         </div>
                     </div>
                     <div class="form-group">
@@ -235,22 +251,12 @@
         <div id="admin-date-modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <span class="close" onclick="closeModal('admin-date-modal')">&times;</span>
-                <h2 id="admin-date-modal-title">Nova Data</h2>
+                <h2 id="admin-date-modal-title"><i class="bi bi-calendar-plus"></i> Nova Data</h2>
                 <form onsubmit="handleSaveDate(event)">
                     <input type="hidden" id="admin-date-id">
                     <div class="form-group">
                         <label>Data *:</label>
-                        <input type="date" id="admin-date-date" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Horário de Abertura *:</label>
-                        <input type="time" id="admin-date-opening-time" required>
-                        <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Ex: 07:00</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Horário de Fechamento *:</label>
-                        <input type="time" id="admin-date-closing-time" required>
-                        <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Ex: 14:00</small>
+                        <label for="admin-date-date"></label><input type="date" id="admin-date-date" required>
                     </div>
                     <div class="form-group">
                         <label>
@@ -259,40 +265,10 @@
                     </div>
                     <div class="form-group">
                         <label>Observações:</label>
-                        <textarea id="admin-date-notes"></textarea>
+                        <label for="admin-date-notes"></label><textarea id="admin-date-notes"></textarea>
                     </div>
                     <button type="submit">Salvar</button>
                     <button type="button" onclick="closeModal('admin-date-modal')" style="background: #666; margin-left: 10px;">Cancelar</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Modal Admin: Criar Slot -->
-        <div id="admin-slot-modal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <span class="close" onclick="closeModal('admin-slot-modal')">&times;</span>
-                <h2>Novo Horário</h2>
-                <form onsubmit="handleSaveSlot(event)">
-                    <input type="hidden" id="admin-slot-id">
-                    <input type="hidden" id="admin-slot-date-id">
-                    <div class="form-group">
-                        <label>Data:</label>
-                        <select id="admin-slot-date-select" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Horário Início *:</label>
-                        <input type="time" id="admin-slot-start" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Horário Fim *:</label>
-                        <input type="time" id="admin-slot-end" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Capacidade *:</label>
-                        <input type="number" id="admin-slot-capacity" min="1" max="100" value="1" required>
-                    </div>
-                    <button type="submit">Salvar</button>
-                    <button type="button" onclick="closeModal('admin-slot-modal')" style="background: #666; margin-left: 10px;">Cancelar</button>
                 </form>
             </div>
         </div>

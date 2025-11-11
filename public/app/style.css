@@ -578,6 +578,9 @@ button:disabled {
     margin: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     transition: box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .date-card:hover {
@@ -601,6 +604,59 @@ button:disabled {
 .date-card p strong {
     color: var(--text-primary);
     font-weight: 600;
+}
+
+.date-card-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.date-card-actions .btn-edit {
+    background: #1976d2;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.date-card-actions .btn-edit:hover {
+    background: #1565c0;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.date-card-actions .btn-delete {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.date-card-actions .btn-delete:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 

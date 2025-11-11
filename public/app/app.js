@@ -43,7 +43,7 @@ async function handleLogin(event) {
                 currentUser = data.data;
                 localStorage.setItem('auth_token', authToken);
                 localStorage.setItem('current_user', JSON.stringify(currentUser));
-                showMessage('Login realizado com sucesso!', 'success');
+                showMessage('Login realizado com sucesso.', 'success');
                 showMainScreen();
 
                 // Se havia uma reserva pendente, abrir modal
@@ -54,10 +54,10 @@ async function handleLogin(event) {
                     }, 500);
                 }
             } else {
-                showMessage('Resposta inválida do servidor', 'error');
+                showMessage('Resposta inválida do servidor. Por favor, tente novamente.', 'error');
             }
         } else {
-            let errorMsg = data.message || 'Erro ao fazer login';
+            let errorMsg = data.message || 'Não foi possível realizar o login. Verifique suas credenciais.';
             if (data.errors) {
                 const errors = Object.values(data.errors).flat();
                 errorMsg = errors.join(', ');
@@ -66,7 +66,7 @@ async function handleLogin(event) {
         }
     } catch (error) {
         console.error('Erro no login:', error);
-        showMessage('Erro de conexão: ' + error.message, 'error');
+        showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
     }
 }
 
@@ -117,7 +117,7 @@ async function handleRegister(event) {
                 currentUser = data.data;
                 localStorage.setItem('auth_token', authToken);
                 localStorage.setItem('current_user', JSON.stringify(currentUser));
-                showMessage('Registro realizado com sucesso!', 'success');
+                showMessage('Registro realizado com sucesso.', 'success');
                 showMainScreen();
 
                 // Se havia uma reserva pendente, abrir modal
@@ -128,10 +128,10 @@ async function handleRegister(event) {
                     }, 500);
                 }
             } else {
-                showMessage('Resposta inválida do servidor', 'error');
+                showMessage('Resposta inválida do servidor. Por favor, tente novamente.', 'error');
             }
         } else {
-            let errorMsg = data.message || 'Erro ao registrar';
+            let errorMsg = data.message || 'Não foi possível realizar o registro. Verifique os dados informados.';
             if (data.errors) {
                 const errors = Object.values(data.errors).flat();
                 errorMsg = errors.join(', ');
@@ -140,7 +140,7 @@ async function handleRegister(event) {
         }
     } catch (error) {
         console.error('Erro no registro:', error);
-        showMessage('Erro de conexão: ' + error.message, 'error');
+        showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
     }
 }
 
@@ -395,7 +395,7 @@ async function loadMeats() {
             });
         }
     } catch (error) {
-        container.innerHTML = '<div class="error">Erro ao carregar carnes</div>';
+        container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar as carnes. Por favor, tente novamente.</div>';
     }
 }
 
@@ -445,7 +445,7 @@ async function searchMeats() {
             });
         }
     } catch (error) {
-        container.innerHTML = '<div class="error">Erro ao buscar</div>';
+        container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível buscar as carnes. Por favor, tente novamente.</div>';
     }
 }
 
@@ -517,7 +517,7 @@ async function showMeatDetails(meatId) {
 
         document.getElementById('meat-modal').style.display = 'block';
     } catch (error) {
-        showMessage('Erro ao carregar detalhes', 'error');
+        showMessage('Não foi possível carregar os detalhes da carne. Por favor, tente novamente.', 'error');
     }
 }
 
@@ -549,7 +549,7 @@ async function loadAvailability() {
             }
         }
     } catch (error) {
-        container.innerHTML = '<div class="error">Erro ao carregar disponibilidade</div>';
+        container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar a disponibilidade. Por favor, tente novamente.</div>';
     }
 }
 
@@ -560,7 +560,7 @@ let selectedDate = null;
 function openReservationModal(meatItemId) {
     // Verificar se está logado
     if (!authToken || !currentUser) {
-        showMessage('Você precisa fazer login ou criar uma conta para fazer uma reserva.', 'info');
+        showMessage('Você precisa fazer login ou criar uma conta para realizar uma reserva.', 'info');
         // Mostrar tela de login/registro
         showAuthScreen();
         // Armazenar o meatItemId para usar após login
@@ -607,7 +607,7 @@ async function loadDatesForReservation() {
             select.innerHTML = '<option value="">Nenhuma data disponível</option>';
         }
     } catch (error) {
-        showMessage('Erro ao carregar datas', 'error');
+        showMessage('Não foi possível carregar as datas disponíveis. Por favor, tente novamente.', 'error');
     }
 }
 
@@ -654,7 +654,7 @@ async function handleCreateReservation(event) {
         }
 
         if (response.ok) {
-            showMessage('Reserva criada com sucesso!', 'success');
+            showMessage('Reserva criada com sucesso.', 'success');
             closeModal('reservation-modal');
             // Limpar formulário
             document.getElementById('reservation-notes').value = '';
@@ -664,7 +664,7 @@ async function handleCreateReservation(event) {
             loadMyReservations();
         } else {
             // Tratar diferentes tipos de erro
-            let errorMsg = 'Erro ao criar reserva';
+            let errorMsg = 'Não foi possível criar a reserva. Por favor, tente novamente.';
 
             if (data.message) {
                 errorMsg = data.message;
@@ -672,11 +672,11 @@ async function handleCreateReservation(event) {
                 const errors = Object.values(data.errors).flat();
                 errorMsg = errors.join(', ');
             } else if (response.status === 409) {
-                errorMsg = 'Esta peça não está mais disponível. Tente novamente.';
+                errorMsg = 'Esta peça não está mais disponível. Por favor, selecione outra peça.';
             } else if (response.status === 422) {
-                errorMsg = 'Dados inválidos. Verifique os campos preenchidos.';
+                errorMsg = 'Dados inválidos. Verifique os campos preenchidos e tente novamente.';
             } else if (response.status === 401) {
-                errorMsg = 'Sessão expirada. Faça login novamente.';
+                errorMsg = 'Sua sessão expirou. Por favor, faça login novamente.';
                 logout();
             }
 
@@ -684,7 +684,7 @@ async function handleCreateReservation(event) {
         }
     } catch (error) {
         console.error('Erro ao criar reserva:', error);
-        showMessage('Erro de conexão: ' + (error.message || 'Não foi possível conectar ao servidor'), 'error');
+        showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
     }
 }
 
@@ -735,7 +735,7 @@ async function loadMyReservations(showAll = false) {
             });
         }
     } catch (error) {
-        container.innerHTML = '<div class="error">Erro ao carregar reservas</div>';
+        container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar as reservas. Por favor, tente novamente.</div>';
     }
 }
 
@@ -765,40 +765,43 @@ function showRecentReservations() {
 }
 
 async function cancelReservation(reservationId) {
-    if (!confirm('Deseja realmente cancelar esta reserva?')) return;
+    showConfirm(
+        'Tem certeza que deseja cancelar esta reserva? Esta ação não pode ser desfeita.',
+        async () => {
+            // Adicionar indicador de loading
+            const button = event.target;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Cancelando...';
 
-    // Adicionar indicador de loading no botão
-    const button = event.target;
-    const originalText = button.textContent;
-    button.disabled = true;
-    button.textContent = 'Cancelando...';
+            try {
+                const response = await fetch(`${API_BASE}/reservations/${reservationId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
 
-    try {
-        const response = await fetch(`${API_BASE}/reservations/${reservationId}/cancel`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${authToken}`
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('Reserva cancelada com sucesso.', 'success');
+                    // Recarregar reservas sem reload da página
+                    const filterBar = document.querySelector('#my-reservations-section .filter-bar');
+                    const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
+                    loadMyReservations(isShowingHistory);
+                } else {
+                    showMessage(data.message || 'Não foi possível cancelar a reserva. Por favor, tente novamente.', 'error');
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            } catch (error) {
+                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+                button.disabled = false;
+                button.textContent = originalText;
             }
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showMessage('Reserva cancelada com sucesso!', 'success');
-            // Recarregar reservas sem reload da página
-            const filterBar = document.querySelector('#my-reservations-section .filter-bar');
-            const isShowingHistory = filterBar.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
-            loadMyReservations(isShowingHistory);
-        } else {
-            showMessage(data.message || 'Erro ao cancelar reserva', 'error');
-            button.disabled = false;
-            button.textContent = originalText;
         }
-    } catch (error) {
-        showMessage('Erro de conexão', 'error');
-        button.disabled = false;
-        button.textContent = originalText;
-    }
+    );
 }
 
 // Admin
@@ -860,7 +863,7 @@ async function loadAdminMeats() {
             });
         }
     } catch (error) {
-        container.innerHTML = '<div class="error">Erro ao carregar</div>';
+        container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar as carnes. Por favor, tente novamente.</div>';
     }
 }
 
@@ -910,7 +913,7 @@ async function editMeat(meatId) {
 
         document.getElementById('admin-meat-modal').style.display = 'block';
     } catch (error) {
-        showMessage('Erro ao carregar dados da carne', 'error');
+        showMessage('Não foi possível carregar os dados da carne. Por favor, tente novamente.', 'error');
     }
 }
 
@@ -990,7 +993,7 @@ async function handleSaveMeat(event) {
                 console.warn('⚠️ Nenhuma imagem retornada na resposta');
             }
 
-            showMessage(isEdit ? 'Carne atualizada com sucesso!' : 'Carne criada com sucesso!', 'success');
+            showMessage(isEdit ? 'Carne atualizada com sucesso.' : 'Carne criada com sucesso.', 'success');
             closeModal('admin-meat-modal');
             // Limpar formulário
             document.getElementById('admin-meat-id').value = '';
@@ -1007,34 +1010,37 @@ async function handleSaveMeat(event) {
             loadAdminMeats();
         } else {
             const errorMsg = data.errors ? Object.values(data.errors).flat().join(', ') : data.message;
-            showMessage(errorMsg || 'Erro ao salvar', 'error');
+            showMessage(errorMsg || 'Não foi possível salvar a carne. Por favor, tente novamente.', 'error');
         }
     } catch (error) {
-        showMessage('Erro de conexão: ' + error.message, 'error');
+        showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
     }
 }
 
 async function deleteMeat(meatId) {
-    if (!confirm('Deseja realmente excluir esta carne?')) return;
+    showConfirm(
+        'Tem certeza que deseja excluir esta carne? Esta ação não pode ser desfeita.',
+        async () => {
+            try {
+                const response = await fetch(`${API_BASE}/admin/meats/${meatId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
 
-    try {
-        const response = await fetch(`${API_BASE}/admin/meats/${meatId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${authToken}`
+                if (response.ok) {
+                    showMessage('Carne excluída com sucesso.', 'success');
+                    loadAdminMeats();
+                } else {
+                    const data = await response.json();
+                    showMessage(data.message || 'Não foi possível excluir a carne. Por favor, tente novamente.', 'error');
+                }
+            } catch (error) {
+                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
             }
-        });
-
-        if (response.ok) {
-            showMessage('Carne excluída com sucesso!', 'success');
-            loadAdminMeats();
-        } else {
-            const data = await response.json();
-            showMessage(data.message || 'Erro ao excluir', 'error');
         }
-    } catch (error) {
-        showMessage('Erro de conexão', 'error');
-    }
+    );
 }
 
 function showCreateDateForm() {
@@ -1073,15 +1079,15 @@ async function handleSaveDate(event) {
         const data = await response.json();
 
         if (response.ok) {
-            showMessage(isEdit ? 'Data atualizada com sucesso!' : 'Data criada com sucesso!', 'success');
+            showMessage(isEdit ? 'Data atualizada com sucesso.' : 'Data criada com sucesso.', 'success');
             closeModal('admin-date-modal');
             loadAdminDates();
         } else {
             const errorMsg = data.errors ? Object.values(data.errors).flat().join(', ') : data.message;
-            showMessage(errorMsg || 'Erro ao salvar', 'error');
+            showMessage(errorMsg || 'Não foi possível salvar a data. Por favor, tente novamente.', 'error');
         }
     } catch (error) {
-        showMessage('Erro de conexão', 'error');
+        showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
     }
 }
 
@@ -1134,7 +1140,7 @@ async function loadAdminReservations(showAll = false) {
             });
         }
     } catch (error) {
-        container.innerHTML = '<div class="error">Erro ao carregar</div>';
+        container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar as reservas. Por favor, tente novamente.</div>';
     }
 }
 
@@ -1162,37 +1168,35 @@ function showAdminRecentReservations() {
 
 async function loadAdminDates() {
     const container = document.getElementById('admin-dates-list');
-    container.innerHTML = '<div class="loading">Carregando...</div>';
+    container.innerHTML = '<div class="loading">Carregando datas disponíveis...</div>';
 
     try {
         const data = await apiRequest('/admin/available-dates');
         if (data.data) {
             container.innerHTML = '';
             if (data.data.length === 0) {
-                container.innerHTML = '<p>Nenhuma data cadastrada</p>';
+                container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhuma data cadastrada</p>';
                 return;
             }
             data.data.forEach(date => {
                 const card = document.createElement('div');
                 card.className = 'date-card';
                 card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <div>
-                            <h3>${formatDate(date.date)}</h3>
-                            <p><strong>Status:</strong> <span>${date.is_open ? '<i class="bi bi-check-circle"></i> Aberta' : '<i class="bi bi-x-circle"></i> Fechada'}</span></p>
-                            ${date.notes ? `<p><strong>Observações:</strong> ${date.notes}</p>` : ''}
-                        </div>
-                        <div>
-                            <button onclick="editDate('${date.id}')" style="margin-right: 5px;">Editar</button>
-                            <button onclick="deleteDate('${date.id}')" style="background: var(--danger-color);">Excluir</button>
-                        </div>
+                    <div>
+                        <h3>${formatDate(date.date)}</h3>
+                        <p><strong>Status:</strong> <span>${date.is_open ? '<i class="bi bi-check-circle"></i> Aberta para agendamentos' : '<i class="bi bi-x-circle"></i> Fechada</span>'}</p>
+                        ${date.notes ? `<p><strong>Observações:</strong> ${date.notes}</p>` : ''}
+                    </div>
+                    <div class="date-card-actions">
+                        <button onclick="editDate('${date.id}')" class="btn-edit"><i class="bi bi-pencil"></i> Editar</button>
+                        <button onclick="deleteDate('${date.id}')" class="btn-delete"><i class="bi bi-trash"></i> Excluir</button>
                     </div>
                 `;
                 container.appendChild(card);
             });
         }
     } catch (error) {
-        container.innerHTML = '<div class="error">Erro ao carregar</div>';
+        container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar as datas. Por favor, tente novamente.</div>';
     }
 }
 
@@ -1208,102 +1212,112 @@ async function editDate(dateId) {
         document.getElementById('admin-date-notes').value = date.notes || '';
         document.getElementById('admin-date-modal').style.display = 'block';
     } catch (error) {
-        showMessage('Erro ao carregar dados da data', 'error');
+        showMessage('Não foi possível carregar os dados da data. Por favor, tente novamente.', 'error');
     }
 }
 
 async function deleteDate(dateId) {
-    if (!confirm('Deseja realmente excluir esta data?')) return;
+    showConfirm(
+        'Tem certeza que deseja excluir esta data? Se houver reservas associadas, elas serão canceladas automaticamente e permanecerão visíveis no histórico.',
+        async () => {
+            try {
+                const response = await fetch(`${API_BASE}/admin/available-dates/${dateId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
 
-    try {
-        const response = await fetch(`${API_BASE}/admin/available-dates/${dateId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${authToken}`
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(data.message || 'Data excluída com sucesso.', 'success');
+                    loadAdminDates();
+                } else {
+                    showMessage(data.message || 'Não foi possível excluir a data. Por favor, tente novamente.', 'error');
+                }
+            } catch (error) {
+                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
             }
-        });
-
-        if (response.ok) {
-            showMessage('Data excluída com sucesso!', 'success');
-            loadAdminDates();
-        } else {
-            const data = await response.json();
-            showMessage(data.message || 'Erro ao excluir', 'error');
         }
-    } catch (error) {
-        showMessage('Erro de conexão', 'error');
-    }
+    );
 }
 
 async function fulfillReservation(reservationId) {
-    if (!confirm('Confirmar que o cliente retirou a carne?')) return;
+    showConfirm(
+        'Confirmar que o cliente retirou a carne? Esta ação marcará a reserva como concluída.',
+        async () => {
+            const button = event.target;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Processando...';
 
-    const button = event.target;
-    const originalText = button.textContent;
-    button.disabled = true;
-    button.textContent = 'Processando...';
+            try {
+                const response = await fetch(`${API_BASE}/admin/reservations/${reservationId}/fulfill`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
 
-    try {
-        const response = await fetch(`${API_BASE}/admin/reservations/${reservationId}/fulfill`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${authToken}`
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('Retirada confirmada com sucesso.', 'success');
+                    // Recarregar sem reload da página
+                    const filterBar = document.querySelector('#admin-reservations .filter-bar');
+                    const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
+                    loadAdminReservations(isShowingHistory);
+                } else {
+                    showMessage(data.message || 'Não foi possível confirmar a retirada. Por favor, tente novamente.', 'error');
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            } catch (error) {
+                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+                button.disabled = false;
+                button.textContent = originalText;
             }
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showMessage('Retirada concluída!', 'success');
-            // Recarregar sem reload da página
-            const filterBar = document.querySelector('#admin-reservations .filter-bar');
-            const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
-            loadAdminReservations(isShowingHistory);
-        } else {
-            showMessage(data.message || 'Erro', 'error');
-            button.disabled = false;
-            button.textContent = originalText;
         }
-    } catch (error) {
-        showMessage('Erro de conexão', 'error');
-        button.disabled = false;
-        button.textContent = originalText;
-    }
+    );
 }
 
 async function adminCancelReservation(reservationId) {
-    if (!confirm('Deseja realmente cancelar esta reserva?')) return;
+    showConfirm(
+        'Tem certeza que deseja cancelar esta reserva? Esta ação não pode ser desfeita.',
+        async () => {
+            const button = event.target;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Cancelando...';
 
-    const button = event.target;
-    const originalText = button.textContent;
-    button.disabled = true;
-    button.textContent = 'Cancelando...';
+            try {
+                const response = await fetch(`${API_BASE}/reservations/${reservationId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
 
-    try {
-        const response = await fetch(`${API_BASE}/reservations/${reservationId}/cancel`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${authToken}`
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('Reserva cancelada com sucesso.', 'success');
+                    const filterBar = document.querySelector('#admin-reservations .filter-bar');
+                    const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
+                    loadAdminReservations(isShowingHistory);
+                } else {
+                    showMessage(data.message || 'Não foi possível cancelar a reserva. Por favor, tente novamente.', 'error');
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            } catch (error) {
+                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+                button.disabled = false;
+                button.textContent = originalText;
             }
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showMessage('Reserva cancelada!', 'success');
-            const filterBar = document.querySelector('#admin-reservations .filter-bar');
-            const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
-            loadAdminReservations(isShowingHistory);
-        } else {
-            showMessage(data.message || 'Erro ao cancelar', 'error');
-            button.disabled = false;
-            button.textContent = originalText;
         }
-    } catch (error) {
-        showMessage('Erro de conexão', 'error');
-        button.disabled = false;
-        button.textContent = originalText;
-    }
+    );
 }
 
 // Utilitários
@@ -1320,6 +1334,53 @@ function showMessage(message, type = 'info') {
     setTimeout(() => {
         msgEl.style.display = 'none';
     }, 5000);
+}
+
+// Função de confirmação profissional
+function showConfirm(message, onConfirm, onCancel = null) {
+    // Criar modal de confirmação
+    const confirmModal = document.createElement('div');
+    confirmModal.className = 'modal';
+    confirmModal.id = 'confirm-modal';
+    confirmModal.style.display = 'block';
+    confirmModal.innerHTML = `
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="margin-bottom: 16px; color: var(--text-primary);">Confirmar ação</h3>
+            <p style="margin-bottom: 24px; color: var(--text-secondary); line-height: 1.6;">${message}</p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button onclick="closeConfirmModal(false)" class="btn-secondary" style="flex: 0 0 auto;">Cancelar</button>
+                <button onclick="closeConfirmModal(true)" class="btn-primary" style="flex: 0 0 auto; background: var(--primary-color);">Confirmar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(confirmModal);
+
+    // Armazenar callbacks
+    window.confirmCallback = onConfirm;
+    window.cancelCallback = onCancel;
+
+    // Fechar ao clicar fora
+    confirmModal.onclick = function(event) {
+        if (event.target === confirmModal) {
+            closeConfirmModal(false);
+        }
+    };
+}
+
+function closeConfirmModal(confirmed) {
+    const confirmModal = document.getElementById('confirm-modal');
+    if (confirmModal) {
+        confirmModal.remove();
+    }
+
+    if (confirmed && window.confirmCallback) {
+        window.confirmCallback();
+    } else if (!confirmed && window.cancelCallback) {
+        window.cancelCallback();
+    }
+
+    delete window.confirmCallback;
+    delete window.cancelCallback;
 }
 
 function formatDate(dateString) {

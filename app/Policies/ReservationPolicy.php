@@ -50,13 +50,13 @@ class ReservationPolicy
 
     /**
      * Determine whether the user can cancel the reservation.
-     * Verifica apenas se o usuário é o dono da reserva.
+     * Admin pode cancelar qualquer reserva, clientes só podem cancelar suas próprias.
      * A validação de negócio (se a reserva pode ser cancelada) é feita no service.
      */
     public function cancel(User $user, Reservation $reservation): bool
     {
-        // Apenas o dono da reserva pode cancelar
-        return $reservation->user_id === $user->id;
+        // Admin pode cancelar qualquer reserva, clientes só podem cancelar suas próprias
+        return $user->isAdmin() || $reservation->user_id === $user->id;
     }
 
     /**

@@ -296,6 +296,13 @@ async function loadWhatsAppButtonForProfile() {
         return;
     }
     
+    // Não mostrar botão WhatsApp para admin
+    const user = window.currentUser || JSON.parse(localStorage.getItem('current_user') || 'null');
+    if (user && user.role === 'admin') {
+        btn.style.display = 'none';
+        return;
+    }
+    
     try {
         const apiBase = window.API_BASE || '/api/v1';
         const response = await fetch(`${apiBase}/admin/whatsapp`, {

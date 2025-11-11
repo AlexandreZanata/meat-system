@@ -10,8 +10,24 @@ let currentUser = window.currentUser;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
+    // Verificar se estamos na página de perfil (não tem auth-screen)
+    const authScreen = document.getElementById('auth-screen');
+    const mainScreen = document.getElementById('main-screen');
+    
+    // Se estiver na página de perfil, não fazer nada (profile.js cuida disso)
+    if (!authScreen || !mainScreen) {
+        // Carregar botão WhatsApp apenas
+        setTimeout(() => {
+            loadWhatsAppButton();
+        }, 500);
+        return;
+    }
+    
     // Permitir navegação sem login - só mostrar tela de login se necessário
     if (authToken && currentUser) {
+        // Esconder auth-screen imediatamente para evitar flash (antes de qualquer renderização)
+        authScreen.style.display = 'none';
+        authScreen.style.visibility = 'hidden';
         showMainScreen();
     } else {
         // Mostrar tela principal sem login - usuário pode navegar
@@ -56,17 +72,14 @@ async function handleLogin(event) {
                 localStorage.setItem('auth_token', authToken);
                 localStorage.setItem('current_user', JSON.stringify(currentUser));
                 showMainScreen();
-                
-                // Mostrar botão WhatsApp (apenas visual)
-                const btn = document.getElementById('whatsapp-float-btn');
-                if (btn) {
-                    btn.style.display = 'flex';
-                    btn.style.zIndex = '9999';
-                }
+                loadWhatsAppButton();
 
-                // Se havia uma reserva pendente, abrir modal
+                // Se havia uma reserva pendente, voltar para o produto e abrir modal
                 if (window.pendingReservation) {
                     setTimeout(() => {
+                        // Voltar para a seção de catálogo
+                        showSection('catalog');
+                        // Abrir o modal da reserva diretamente
                         openReservationModal(window.pendingReservation.meatItemId);
                         window.pendingReservation = null;
                     }, 500);
@@ -139,17 +152,14 @@ async function handleRegister(event) {
                 localStorage.setItem('current_user', JSON.stringify(currentUser));
                 showMessage('Registro realizado com sucesso.', 'success');
                 showMainScreen();
-                
-                // Mostrar botão WhatsApp (apenas visual)
-                const btn = document.getElementById('whatsapp-float-btn');
-                if (btn) {
-                    btn.style.display = 'flex';
-                    btn.style.zIndex = '9999';
-                }
+                loadWhatsAppButton();
 
-                // Se havia uma reserva pendente, abrir modal
+                // Se havia uma reserva pendente, voltar para o produto e abrir modal
                 if (window.pendingReservation) {
                     setTimeout(() => {
+                        // Voltar para a seção de catálogo
+                        showSection('catalog');
+                        // Abrir o modal da reserva diretamente
                         openReservationModal(window.pendingReservation.meatItemId);
                         window.pendingReservation = null;
                     }, 500);
@@ -189,10 +199,17 @@ function logout() {
 
 // Funções de Navegação
 function showAuthScreen() {
-    document.getElementById('auth-screen').style.display = 'block';
-    document.getElementById('main-screen').style.display = 'none';
-    document.getElementById('user-info').style.display = 'none';
-    document.getElementById('guest-info').style.display = 'none';
+    const authScreen = document.getElementById('auth-screen');
+    const mainScreen = document.getElementById('main-screen');
+    if (authScreen) {
+        authScreen.style.display = 'block';
+        authScreen.style.visibility = 'visible';
+    }
+    if (mainScreen) mainScreen.style.display = 'none';
+    const userInfo = document.getElementById('user-info');
+    const guestInfo = document.getElementById('guest-info');
+    if (userInfo) userInfo.style.display = 'none';
+    if (guestInfo) guestInfo.style.display = 'none';
 }
 
 function showMainScreenWithoutAuth() {
@@ -226,7 +243,9 @@ function showMainScreen() {
         return;
     }
     
+    // Esconder auth-screen completamente para evitar flash
     authScreen.style.display = 'none';
+    authScreen.style.visibility = 'hidden';
     mainScreen.style.display = 'block';
     
     const userInfo = document.getElementById('user-info');
@@ -260,12 +279,16 @@ function showMainScreen() {
 async function loadWhatsAppButton() {
     const btn = document.getElementById('whatsapp-float-btn');
     if (!btn) {
-        console.warn('Botão WhatsApp não encontrado');
+        return;
+    }
+    
+    // Não mostrar botão WhatsApp para admin
+    if (currentUser && currentUser.role === 'admin') {
+        btn.style.display = 'none';
         return;
     }
     
     try {
-        console.log('Carregando número do WhatsApp...');
         const response = await fetch(`${API_BASE}/admin/whatsapp`, {
             method: 'GET',
             headers: {
@@ -273,11 +296,8 @@ async function loadWhatsAppButton() {
             }
         });
         
-        console.log('Resposta WhatsApp status:', response.status);
-        
         if (response.ok) {
             const data = await response.json();
-            console.log('Dados WhatsApp recebidos:', data);
             
             // Verificar se há número e não está vazio
             if (data && data.whatsapp !== null && data.whatsapp !== undefined) {
@@ -288,17 +308,13 @@ async function loadWhatsAppButton() {
                     btn.style.display = 'flex';
                     btn.style.cursor = 'pointer';
                     btn.onclick = openWhatsApp;
-                    console.log('Botão WhatsApp exibido com número:', whatsappNumber.substring(0, 5) + '...');
                 } else {
-                    console.log('Número WhatsApp vazio');
                     btn.style.display = 'none';
                 }
             } else {
-                console.log('Número WhatsApp não configurado (null/undefined)');
                 btn.style.display = 'none';
             }
         } else {
-            console.error('Erro na resposta WhatsApp:', response.status);
             btn.style.display = 'none';
         }
     } catch (error) {
@@ -696,10 +712,15 @@ async function loadAvailability() {
                     hasValidDates = true;
                     const dateCard = document.createElement('div');
                     dateCard.className = 'date-card';
+                    dateCard.style.cssText = 'padding: 10px 14px; margin-bottom: 6px; border: 1px solid var(--border-color); border-radius: 6px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.05);';
                     dateCard.innerHTML = `
-                        <h3>${formatDate(date.date)}</h3>
-                        <p><strong>Status:</strong> <span><i class="bi bi-check-circle"></i> Disponível para agendamento</span></p>
-                        ${date.notes ? `<p><strong>Observações:</strong> ${date.notes}</p>` : ''}
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                            <div style="flex: 1; min-width: 0;">
+                                <h3 style="margin: 0 0 2px 0; font-size: 0.95rem; font-weight: 600; color: var(--text-primary); line-height: 1.3;">${formatDate(date.date)}</h3>
+                                <p style="margin: 0; font-size: 0.8rem; color: var(--success-color); font-weight: 500; display: flex; align-items: center; gap: 4px;"><i class="bi bi-check-circle" style="font-size: 0.75rem;"></i> Disponível</p>
+                            </div>
+                            ${date.notes ? `<p style="margin: 0; font-size: 0.75rem; color: var(--text-secondary); flex: 1; text-align: right; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${date.notes}</p>` : ''}
+                        </div>
                     `;
                     container.appendChild(dateCard);
                 }
@@ -724,11 +745,15 @@ let selectedDate = null;
 function openReservationModal(meatItemId) {
     // Verificar se está logado
     if (!authToken || !currentUser) {
-        showMessage('Você precisa fazer login ou criar uma conta para realizar uma reserva.', 'info');
-        // Mostrar tela de login/registro
-        showAuthScreen();
-        // Armazenar o meatItemId para usar após login
+        // Fechar modal da carne primeiro
+        closeModal('meat-modal');
+        
+        // Armazenar o meatItemId para usar após login/registro
         window.pendingReservation = { meatItemId };
+        
+        // Mostrar tela de registro diretamente
+        showAuthScreen();
+        showTab('register');
         return;
     }
 
@@ -1783,14 +1808,17 @@ function closeModal(modalId) {
 }
 
 function showMessage(message, type = 'info') {
-    const msgEl = document.getElementById('message');
-    msgEl.textContent = message;
-    msgEl.className = `message ${type}`;
-    msgEl.style.display = 'block';
-
-    setTimeout(() => {
-        msgEl.style.display = 'none';
-    }, 5000);
+    const el = document.createElement('div');
+    el.textContent = message;
+    el.style.cssText = `
+        position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+        background: ${type === 'error' ? '#ea1d2c' : type === 'success' ? '#00a859' : '#ea1d2c'};
+        color: white; padding: 12px 24px; border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10000;
+        font-size: 14px; font-weight: 600; max-width: 90%; text-align: center;
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
 }
 
 // Função de confirmação profissional

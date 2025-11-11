@@ -39,11 +39,9 @@ class AvailabilityController extends Controller
      */
     public function dates(): JsonResponse
     {
-        // Retornar apenas datas abertas, futuras e com horários configurados
+        // Retornar apenas datas abertas e futuras
         $dates = AvailableDate::open()
             ->future()
-            ->whereNotNull('opening_time')
-            ->whereNotNull('closing_time')
             ->orderBy('date')
             ->get();
 

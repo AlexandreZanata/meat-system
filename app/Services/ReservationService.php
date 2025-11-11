@@ -45,44 +45,17 @@ class ReservationService
                 throw new \Exception('Esta data não está aberta para agendamentos.', 400);
             }
 
-            // Verificar se a data tem horários configurados
-            if (!$availableDate->opening_time || !$availableDate->closing_time) {
-                throw new \Exception('Esta data não possui horário de funcionamento configurado.', 400);
-            }
+            // Usar a data diretamente (sem horário específico)
+            $pickupAt = Carbon::parse($availableDate->date)->startOfDay();
 
-            // Build pickup_at datetime usando o horário de abertura
-            $openingTime = $availableDate->opening_time;
-            if (!$openingTime) {
-                throw new \Exception('Horário de abertura não configurado para esta data.', 400);
-            }
-            
-            // Converter para formato H:i:s se necessário
-            if (is_string($openingTime)) {
-                // Se já está no formato H:i, adicionar :00
-                if (preg_match('/^\d{2}:\d{2}$/', $openingTime)) {
-                    $openingTime = $openingTime . ':00';
-                }
-                $openingTime = Carbon::parse($openingTime)->format('H:i:s');
-            } elseif ($openingTime instanceof \Carbon\Carbon) {
-                $openingTime = $openingTime->format('H:i:s');
-            }
-            
-            $pickupAt = Carbon::parse($availableDate->date)
-                ->setTimeFromTimeString($openingTime);
-
-            // Criar um slot temporário ou usar null (manter compatibilidade)
-            // Para manter compatibilidade, vamos criar um slot padrão se não existir
+            // Criar um slot temporário ou usar o primeiro disponível
             $pickupSlot = $availableDate->pickupSlots()->first();
             if (!$pickupSlot) {
-                // Criar slot padrão para a data
+                // Criar slot padrão para a data (dia inteiro)
                 $pickupSlot = \App\Models\PickupSlot::create([
                     'available_date_id' => $availableDate->id,
-                    'start_at' => $openingTime,
-                    'end_at' => is_string($availableDate->closing_time) 
-                        ? (preg_match('/^\d{2}:\d{2}$/', $availableDate->closing_time) 
-                            ? $availableDate->closing_time . ':00'
-                            : Carbon::parse($availableDate->closing_time)->format('H:i:s'))
-                        : $availableDate->closing_time->format('H:i:s'),
+                    'start_at' => '00:00:00',
+                    'end_at' => '23:59:59',
                     'capacity' => 999, // Capacidade ilimitada
                 ]);
             }

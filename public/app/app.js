@@ -12,6 +12,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Mostrar tela principal sem login - usuário pode navegar
         showMainScreenWithoutAuth();
     }
+    
+    // Carregar botão WhatsApp após um pequeno delay para garantir que o DOM está pronto
+    setTimeout(() => {
+        if (!currentUser || currentUser.role !== 'admin') {
+            loadWhatsAppButton();
+        }
+    }, 500);
 });
 
 // Funções de Autenticação
@@ -179,8 +186,11 @@ function showMainScreenWithoutAuth() {
         }
     });
 
+    document.getElementById('main-nav-tabs').style.display = 'flex';
     showSection('catalog');
     loadMeats();
+    // Carregar e mostrar botão WhatsApp para visitantes
+    loadWhatsAppButton();
 }
 
 function showMainScreen() {
@@ -200,12 +210,68 @@ function showMainScreen() {
         loadAdminReservations();
         loadAdminMeats();
         loadAdminDates();
+        // Ocultar botão WhatsApp para admin
+        document.getElementById('whatsapp-float-btn').style.display = 'none';
     } else {
         // Se for cliente, mostrar abas normais
         document.getElementById('main-nav-tabs').style.display = 'flex';
         showSection('catalog');
         loadMeats();
+        // Carregar e mostrar botão WhatsApp para clientes
+        loadWhatsAppButton();
     }
+}
+
+async function loadWhatsAppButton() {
+    const btn = document.getElementById('whatsapp-float-btn');
+    if (!btn) return;
+    
+    // Não mostrar para admin
+    if (currentUser && currentUser.role === 'admin') {
+        btn.style.display = 'none';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/admin/whatsapp`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch WhatsApp number');
+        }
+        
+        const data = await response.json();
+        
+        if (data.whatsapp && data.whatsapp.trim() !== '') {
+            window.adminWhatsApp = data.whatsapp;
+            btn.style.display = 'flex';
+        } else {
+            btn.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error loading WhatsApp number:', error);
+        btn.style.display = 'none';
+    }
+}
+
+function openWhatsApp() {
+    if (!window.adminWhatsApp) {
+        showMessage('Número de contato não disponível no momento.', 'error');
+        return;
+    }
+
+    // Remove any non-numeric characters
+    const phoneNumber = window.adminWhatsApp.replace(/\D/g, '');
+    const message = encodeURIComponent('Olá! Gostaria de entrar em contato.');
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+    
+    window.open(whatsappUrl, '_blank');
+}
+
+function openProfile() {
+    if (!authToken || !currentUser) {
+        showAuthScreen();
+        return;
+    }
+    window.location.href = '/app/profile.html';
 }
 
 function showTab(tab) {
@@ -245,8 +311,20 @@ function showSection(section, clickedElement = null) {
         }
     }
 
-    if (section === 'catalog') loadMeats();
-    if (section === 'availability') loadAvailability();
+    if (section === 'catalog') {
+        loadMeats();
+        // Carregar WhatsApp se não for admin
+        if (!currentUser || currentUser.role !== 'admin') {
+            loadWhatsAppButton();
+        }
+    }
+    if (section === 'availability') {
+        loadAvailability();
+        // Carregar WhatsApp se não for admin
+        if (!currentUser || currentUser.role !== 'admin') {
+            loadWhatsAppButton();
+        }
+    }
     if (section === 'my-reservations') loadMyReservations();
     if (section === 'admin') {
         showAdminTab('admin-reservations');
@@ -530,16 +608,29 @@ async function showMeatDetails(meatId) {
 // Disponibilidade
 async function loadAvailability() {
     const container = document.getElementById('dates-list');
+    if (!container) return;
+    
     container.innerHTML = '<div class="loading">Carregando...</div>';
 
     try {
-        const dates = await apiRequest('/availability/dates');
-        if (dates.data) {
+        const response = await fetch(`${API_BASE}/availability/dates`);
+        const result = await response.json();
+        
+        if (result.data && Array.isArray(result.data)) {
             container.innerHTML = '';
+            
+            if (result.data.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhuma data disponível</p>';
+                return;
+            }
+            
             const today = new Date().toISOString().split('T')[0];
-            dates.data.forEach(date => {
-                // Mostrar apenas datas abertas e futuras
+            let hasValidDates = false;
+            
+            result.data.forEach(date => {
+                // Mostrar apenas datas abertas e futuras (o backend já filtra, mas verificamos novamente)
                 if (date.is_open && date.date >= today) {
+                    hasValidDates = true;
                     const dateCard = document.createElement('div');
                     dateCard.className = 'date-card';
                     dateCard.innerHTML = `
@@ -550,11 +641,15 @@ async function loadAvailability() {
                     container.appendChild(dateCard);
                 }
             });
-            if (container.innerHTML === '') {
+            
+            if (!hasValidDates) {
                 container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhuma data disponível</p>';
             }
+        } else {
+            container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhuma data disponível</p>';
         }
     } catch (error) {
+        console.error('Error loading availability:', error);
         container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar a disponibilidade. Por favor, tente novamente.</div>';
     }
 }
@@ -801,37 +896,37 @@ async function cancelReservation(reservationId) {
         'Tem certeza que deseja cancelar esta reserva? Esta ação não pode ser desfeita.',
         async () => {
             // Adicionar indicador de loading
-            const button = event.target;
-            const originalText = button.textContent;
-            button.disabled = true;
-            button.textContent = 'Cancelando...';
+    const button = event.target;
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Cancelando...';
 
-            try {
-                const response = await fetch(`${API_BASE}/reservations/${reservationId}/cancel`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showMessage('Reserva cancelada com sucesso.', 'success');
-                    // Recarregar reservas sem reload da página
-                    const filterBar = document.querySelector('#my-reservations-section .filter-bar');
-                    const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
-                    loadMyReservations(isShowingHistory);
-                } else {
-                    showMessage(data.message || 'Não foi possível cancelar a reserva. Por favor, tente novamente.', 'error');
-                    button.disabled = false;
-                    button.textContent = originalText;
-                }
-            } catch (error) {
-                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
-                button.disabled = false;
-                button.textContent = originalText;
+    try {
+        const response = await fetch(`${API_BASE}/reservations/${reservationId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
             }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+                    showMessage('Reserva cancelada com sucesso.', 'success');
+            // Recarregar reservas sem reload da página
+            const filterBar = document.querySelector('#my-reservations-section .filter-bar');
+                    const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
+            loadMyReservations(isShowingHistory);
+        } else {
+                    showMessage(data.message || 'Não foi possível cancelar a reserva. Por favor, tente novamente.', 'error');
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    } catch (error) {
+                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+        button.disabled = false;
+        button.textContent = originalText;
+    }
         }
     );
 }
@@ -1055,24 +1150,24 @@ async function deleteMeat(meatId) {
     showConfirm(
         'Tem certeza que deseja excluir esta carne? Esta ação não pode ser desfeita.',
         async () => {
-            try {
-                const response = await fetch(`${API_BASE}/admin/meats/${meatId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-
-                if (response.ok) {
-                    showMessage('Carne excluída com sucesso.', 'success');
-                    loadAdminMeats();
-                } else {
-                    const data = await response.json();
-                    showMessage(data.message || 'Não foi possível excluir a carne. Por favor, tente novamente.', 'error');
-                }
-            } catch (error) {
-                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+    try {
+        const response = await fetch(`${API_BASE}/admin/meats/${meatId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
             }
+        });
+
+        if (response.ok) {
+                    showMessage('Carne excluída com sucesso.', 'success');
+            loadAdminMeats();
+        } else {
+            const data = await response.json();
+                    showMessage(data.message || 'Não foi possível excluir a carne. Por favor, tente novamente.', 'error');
+        }
+    } catch (error) {
+                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+    }
         }
     );
 }
@@ -1244,11 +1339,11 @@ async function loadAdminDates() {
                 const card = document.createElement('div');
                 card.className = 'date-card';
                 card.innerHTML = `
-                    <div>
-                        <h3>${formatDate(date.date)}</h3>
+                        <div>
+                            <h3>${formatDate(date.date)}</h3>
                         <p><strong>Status:</strong> <span>${date.is_open ? '<i class="bi bi-check-circle"></i> Aberta para agendamentos' : '<i class="bi bi-x-circle"></i> Fechada</span>'}</p>
-                        ${date.notes ? `<p><strong>Observações:</strong> ${date.notes}</p>` : ''}
-                    </div>
+                            ${date.notes ? `<p><strong>Observações:</strong> ${date.notes}</p>` : ''}
+                        </div>
                     <div class="date-card-actions">
                         <button onclick="editDate('${date.id}')" class="btn-edit"><i class="bi bi-pencil"></i> Editar</button>
                         <button onclick="deleteDate('${date.id}')" class="btn-delete"><i class="bi bi-trash"></i> Excluir</button>
@@ -1282,20 +1377,20 @@ async function deleteDate(dateId) {
     showConfirm(
         'Tem certeza que deseja excluir esta data? Se houver reservas associadas, elas serão canceladas automaticamente e permanecerão visíveis no histórico.',
         async () => {
-            try {
-                const response = await fetch(`${API_BASE}/admin/available-dates/${dateId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
+    try {
+        const response = await fetch(`${API_BASE}/admin/available-dates/${dateId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
 
                 const data = await response.json();
 
-                if (response.ok) {
+        if (response.ok) {
                     showMessage(data.message || 'Data excluída com sucesso.', 'success');
-                    loadAdminDates();
-                } else {
+            loadAdminDates();
+        } else {
                     showMessage(data.message || 'Não foi possível excluir a data. Por favor, tente novamente.', 'error');
                 }
             } catch (error) {
@@ -1431,7 +1526,7 @@ async function handleSaveStock(event) {
             body: JSON.stringify(requestData)
         });
 
-        const data = await response.json();
+            const data = await response.json();
 
         if (response.ok) {
             showMessage(data.message || `${quantity} peça(s) cadastrada(s) com sucesso.`, 'success');
@@ -1546,37 +1641,37 @@ async function fulfillReservation(reservationId) {
     showConfirm(
         'Confirmar que o cliente retirou a carne? Esta ação marcará a reserva como concluída.',
         async () => {
-            const button = event.target;
-            const originalText = button.textContent;
-            button.disabled = true;
-            button.textContent = 'Processando...';
+    const button = event.target;
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Processando...';
 
-            try {
-                const response = await fetch(`${API_BASE}/admin/reservations/${reservationId}/fulfill`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showMessage('Retirada confirmada com sucesso.', 'success');
-                    // Recarregar sem reload da página
-                    const filterBar = document.querySelector('#admin-reservations .filter-bar');
-                    const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
-                    loadAdminReservations(isShowingHistory);
-                } else {
-                    showMessage(data.message || 'Não foi possível confirmar a retirada. Por favor, tente novamente.', 'error');
-                    button.disabled = false;
-                    button.textContent = originalText;
-                }
-            } catch (error) {
-                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
-                button.disabled = false;
-                button.textContent = originalText;
+    try {
+        const response = await fetch(`${API_BASE}/admin/reservations/${reservationId}/fulfill`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
             }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+                    showMessage('Retirada confirmada com sucesso.', 'success');
+            // Recarregar sem reload da página
+            const filterBar = document.querySelector('#admin-reservations .filter-bar');
+            const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
+            loadAdminReservations(isShowingHistory);
+        } else {
+                    showMessage(data.message || 'Não foi possível confirmar a retirada. Por favor, tente novamente.', 'error');
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    } catch (error) {
+                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+        button.disabled = false;
+        button.textContent = originalText;
+    }
         }
     );
 }
@@ -1585,36 +1680,36 @@ async function adminCancelReservation(reservationId) {
     showConfirm(
         'Tem certeza que deseja cancelar esta reserva? Esta ação não pode ser desfeita.',
         async () => {
-            const button = event.target;
-            const originalText = button.textContent;
-            button.disabled = true;
-            button.textContent = 'Cancelando...';
+    const button = event.target;
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Cancelando...';
 
-            try {
-                const response = await fetch(`${API_BASE}/reservations/${reservationId}/cancel`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showMessage('Reserva cancelada com sucesso.', 'success');
-                    const filterBar = document.querySelector('#admin-reservations .filter-bar');
-                    const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
-                    loadAdminReservations(isShowingHistory);
-                } else {
-                    showMessage(data.message || 'Não foi possível cancelar a reserva. Por favor, tente novamente.', 'error');
-                    button.disabled = false;
-                    button.textContent = originalText;
-                }
-            } catch (error) {
-                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
-                button.disabled = false;
-                button.textContent = originalText;
+    try {
+        const response = await fetch(`${API_BASE}/reservations/${reservationId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
             }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+                    showMessage('Reserva cancelada com sucesso.', 'success');
+            const filterBar = document.querySelector('#admin-reservations .filter-bar');
+            const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');
+            loadAdminReservations(isShowingHistory);
+        } else {
+                    showMessage(data.message || 'Não foi possível cancelar a reserva. Por favor, tente novamente.', 'error');
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    } catch (error) {
+                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+        button.disabled = false;
+        button.textContent = originalText;
+    }
         }
     );
 }

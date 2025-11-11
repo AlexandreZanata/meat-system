@@ -146,8 +146,8 @@ class AvailableDateController extends Controller
             }
 
             // Excluir a data
-            $availableDate->delete();
-            
+        $availableDate->delete();
+
             // Reativar foreign key checks
             if ($reservations->count() > 0) {
                 $driver = DB::getDriverName();

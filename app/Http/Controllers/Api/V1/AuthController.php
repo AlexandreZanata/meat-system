@@ -246,4 +246,66 @@ class AuthController extends Controller
             'data' => new UserResource($request->user()),
         ]);
     }
+
+    /**
+     * @OA\Put(
+     *     path="/api/v1/auth/profile",
+     *     tags={"Auth"},
+     *     security={{"bearerAuth":{}}},
+     *     summary="Atualizar perfil do usuário",
+     *     description="Atualiza os dados do usuário autenticado",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="name", type="string", example="João Silva"),
+     *             @OA\Property(property="phone", type="string", example="(65) 99999-9999"),
+     *             @OA\Property(property="whatsapp", type="string", example="5565999999999"),
+     *             @OA\Property(property="avatar_url", type="string", example="https://example.com/avatar.jpg")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Perfil atualizado com sucesso",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", ref="#/components/schemas/User")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Não autenticado"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erro de validação"
+     *     )
+     * )
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'whatsapp' => ['nullable', 'string', 'max:20'],
+            'avatar_url' => ['nullable', 'string', 'max:10000'], // Aceita data URLs também
+        ]);
+
+        $user = $request->user();
+        
+        // Validar URL apenas se não for data URL
+        if (isset($validated['avatar_url']) && $validated['avatar_url'] && !str_starts_with($validated['avatar_url'], 'data:image')) {
+            if (!filter_var($validated['avatar_url'], FILTER_VALIDATE_URL)) {
+                return response()->json([
+                    'message' => 'A URL da imagem de perfil é inválida.',
+                    'errors' => ['avatar_url' => ['A URL da imagem de perfil é inválida.']]
+                ], 422);
+            }
+        }
+        
+        $user->update($validated);
+
+        return response()->json([
+            'data' => new UserResource($user->fresh()),
+            'message' => 'Perfil atualizado com sucesso.',
+        ]);
+    }
 }

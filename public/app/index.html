@@ -14,7 +14,9 @@
         <header>
             <div class="header-content">
                 <div class="header-left">
-                    <i class="bi bi-shop"></i>
+                    <button onclick="openProfile()" class="btn-profile" title="Meu Perfil">
+                        <i class="bi bi-person-circle"></i>
+                    </button>
                 </div>
                 <div class="header-right">
                     <div id="user-info" class="user-info" style="display: none;">
@@ -32,6 +34,11 @@
                 </div>
             </div>
         </header>
+
+        <!-- WhatsApp Float Button -->
+        <div id="whatsapp-float-btn" class="whatsapp-float-btn" style="display: none;" onclick="openWhatsApp()" title="Fale conosco no WhatsApp">
+            <i class="bi bi-whatsapp"></i>
+        </div>
 
         <!-- Tela de Login/Registro -->
         <div id="auth-screen" class="screen">

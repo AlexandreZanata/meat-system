@@ -7,8 +7,10 @@ use App\Http\Requests\Admin\StoreMeatItemBulkRequest;
 use App\Http\Resources\MeatItemResource;
 use App\Models\Meat;
 use App\Models\MeatItem;
+use App\Models\Reservation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class MeatItemController extends Controller
@@ -127,17 +129,85 @@ class MeatItemController extends Controller
 
     public function destroy(MeatItem $meatItem): JsonResponse
     {
-        // Check if item is reserved or picked up
-        if (in_array($meatItem->status, ['reserved', 'picked_up'])) {
+        try {
+            DB::beginTransaction();
+
+            // Verificar se há reservas associadas
+            $reservations = Reservation::where('meat_item_id', $meatItem->id)->get();
+            $itemCode = $meatItem->code;
+            $canceledCount = 0;
+            
+            if ($reservations->count() > 0) {
+                // Fazer backup: cancelar reservas ativas e adicionar nota
+                foreach ($reservations as $reservation) {
+                    if (in_array($reservation->status, ['reserved', 'fulfilled'])) {
+                        $reservation->status = 'canceled';
+                        $reservation->canceled_at = now();
+                        $originalNotes = $reservation->notes ?? '';
+                        $backupNote = "Reserva cancelada automaticamente devido à exclusão da peça de carne (Código: {$itemCode}).";
+                        $reservation->notes = $originalNotes 
+                            ? $originalNotes . "\n\n" . $backupNote 
+                            : $backupNote;
+                        $reservation->save();
+                        $canceledCount++;
+                    }
+                }
+                
+                // Para permitir exclusão mesmo com reservas associadas
+                // Desabilitar foreign key checks temporariamente (funciona para MySQL e SQLite)
+                $driver = DB::getDriverName();
+                
+                if ($driver === 'sqlite') {
+                    // SQLite: desabilitar foreign keys usando PRAGMA
+                    DB::statement('PRAGMA foreign_keys = OFF');
+                } else {
+                    // MySQL: desabilitar foreign key checks
+                    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+                }
+            }
+
+            // Excluir a peça
+            $meatItem->delete();
+            
+            // Reativar foreign key checks
+            if ($reservations->count() > 0) {
+                $driver = DB::getDriverName();
+                if ($driver === 'sqlite') {
+                    DB::statement('PRAGMA foreign_keys = ON');
+                } else {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+                }
+            }
+
+            DB::commit();
+
+            $message = 'Peça excluída com sucesso.';
+            if ($canceledCount > 0) {
+                $message .= " {$canceledCount} reserva(s) foram canceladas e permanecem visíveis no histórico.";
+            }
+
+            return response()->json(['message' => $message]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Reativar foreign key checks em caso de erro
+            $driver = DB::getDriverName();
+            try {
+                if ($driver === 'sqlite') {
+                    DB::statement('PRAGMA foreign_keys = ON');
+                } else {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+                }
+            } catch (\Exception $e2) {
+                // Ignorar erro ao reativar checks
+            }
+            
+            \Log::error('Error deleting meat item: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            
             return response()->json([
-                'message' => 'Não é possível excluir uma peça que está reservada ou já foi retirada.',
-            ], 400);
+                'message' => 'Não foi possível excluir a peça. Verifique se não há reservas associadas ou tente novamente.'
+            ], 500);
         }
-
-        $meatItem->delete();
-
-        return response()->json([
-            'message' => 'Peça excluída com sucesso.',
-        ]);
     }
 }

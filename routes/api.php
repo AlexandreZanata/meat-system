@@ -26,11 +26,20 @@ Route::prefix('v1')->group(function () {
     Route::get('/availability/dates', [AvailabilityController::class, 'dates']);
     Route::get('/availability/dates/{date}/slots', [AvailabilityController::class, 'slots']);
 
+    // Public admin contact
+    Route::get('/admin/whatsapp', function () {
+        $admin = \App\Models\User::where('role', 'admin')->first();
+        return response()->json([
+            'whatsapp' => $admin?->whatsapp ?? null,
+        ]);
+    });
+
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {
         // Auth
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
 
         // Customer reservations
         Route::get('/reservations/my', [ReservationController::class, 'my']);

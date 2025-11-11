@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Meu Perfil - Sistema de Agendamento</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/app/style.css">
+    <link rel="stylesheet" href="/app/profile.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <button onclick="window.location.href='/app/index.html'" class="btn-back-profile" title="Voltar">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                </div>
+                <div class="header-center">
+                    <h1 style="margin: 0; font-size: 1.2rem; font-weight: 600; color: white; text-align: center;">Perfil</h1>
+                </div>
+                <div class="header-right"></div>
+            </div>
+        </header>
+
+        <div class="profile-container">
+            <!-- Avatar Section -->
+            <div class="profile-avatar-section">
+                <div class="avatar-wrapper">
+                    <img id="profile-avatar" src="" alt="Avatar" class="profile-avatar">
+                    <button onclick="document.getElementById('avatar-upload').click()" class="avatar-edit-btn" title="Alterar foto">
+                        <i class="bi bi-camera"></i>
+                    </button>
+                    <input type="file" id="avatar-upload" accept="image/*" style="display: none;" onchange="handleAvatarUpload(event)">
+                    <input type="hidden" id="profile-avatar-url-input">
+                </div>
+                <h2 id="profile-name" class="profile-name"></h2>
+                <p id="profile-email" class="profile-email"></p>
+            </div>
+
+            <!-- Form Section -->
+            <form id="profile-form" onsubmit="handleProfileUpdate(event)" class="profile-form">
+                <div class="form-group">
+                    <label for="profile-name-input">Nome *</label>
+                    <input type="text" id="profile-name-input" required placeholder="Seu nome completo">
+                </div>
+
+                <div class="form-group">
+                    <label for="profile-email-input">E-mail</label>
+                    <input type="email" id="profile-email-input" readonly disabled style="background: var(--bg-secondary); cursor: not-allowed;">
+                    <small class="form-hint">O e-mail não pode ser alterado</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="profile-phone-input">Telefone</label>
+                    <input type="text" id="profile-phone-input" placeholder="(65) 99999-9999">
+                </div>
+
+                <div id="admin-whatsapp-field" class="admin-whatsapp-group" style="display: none;">
+                    <label for="profile-whatsapp-input" class="admin-label">
+                        <i class="bi bi-whatsapp"></i> WhatsApp (Número para Contato)
+                    </label>
+                    <input type="text" id="profile-whatsapp-input" placeholder="5565999999999" class="admin-input" maxlength="20">
+                    <small class="form-hint admin-hint">Número que será exibido no botão de contato para os clientes. Use apenas números com DDD e código do país (ex: 5565999999999). Se não informado, o botão não será exibido.</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="bi bi-check-lg"></i> Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/app/app.js"></script>
+    <script src="/app/profile.js"></script>
+</body>
+</html>
+

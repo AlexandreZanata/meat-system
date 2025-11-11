@@ -35,7 +35,7 @@ class StoreMeatItemBulkRequest extends FormRequest
                 $rules['fixed_price.*'] = ['nullable', 'numeric', 'min:0', 'max:999999.99'];
             } else {
                 $rules['fixed_price'] = ['nullable', 'numeric', 'min:0', 'max:999999.99'];
-            }
+    }
         }
 
         return $rules;

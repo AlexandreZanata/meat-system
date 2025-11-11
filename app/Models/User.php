@@ -28,6 +28,7 @@ class User extends Authenticatable
         'role',
         'whatsapp',
         'avatar_url',
+        'created_from_ip',
     ];
 
     /**

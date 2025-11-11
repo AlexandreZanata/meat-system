@@ -282,6 +282,8 @@ class AuthController extends Controller
      */
     public function updateProfile(Request $request): JsonResponse
     {
+        $user = $request->user();
+        
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
@@ -289,9 +291,23 @@ class AuthController extends Controller
             'avatar_url' => ['nullable', 'string', 'max:10000'], // Aceita data URLs também
         ]);
 
-        $user = $request->user();
+        // Apenas admin pode atualizar o campo whatsapp
+        if (isset($validated['whatsapp']) && !$user->isAdmin()) {
+            unset($validated['whatsapp']);
+        }
         
-        // Validar URL apenas se não for data URL
+        // Converter strings vazias em null para campos opcionais
+        if (isset($validated['phone']) && $validated['phone'] === '') {
+            $validated['phone'] = null;
+        }
+        if (isset($validated['whatsapp']) && $validated['whatsapp'] === '') {
+            $validated['whatsapp'] = null;
+        }
+        if (isset($validated['avatar_url']) && $validated['avatar_url'] === '') {
+            $validated['avatar_url'] = null;
+        }
+        
+        // Validar URL apenas se não for data URL e não for null
         if (isset($validated['avatar_url']) && $validated['avatar_url'] && !str_starts_with($validated['avatar_url'], 'data:image')) {
             if (!filter_var($validated['avatar_url'], FILTER_VALIDATE_URL)) {
                 return response()->json([
@@ -301,7 +317,9 @@ class AuthController extends Controller
             }
         }
         
-        $user->update($validated);
+        // Atualizar apenas os campos fornecidos
+        $user->fill($validated);
+        $user->save();
 
         return response()->json([
             'data' => new UserResource($user->fresh()),

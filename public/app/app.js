@@ -1,7 +1,12 @@
-// Configuração
-const API_BASE = '/api/v1';
-let authToken = localStorage.getItem('auth_token');
-let currentUser = JSON.parse(localStorage.getItem('current_user') || 'null');
+// Configuração - Variáveis globais
+window.API_BASE = '/api/v1';
+window.authToken = localStorage.getItem('auth_token');
+window.currentUser = JSON.parse(localStorage.getItem('current_user') || 'null');
+
+// Manter compatibilidade com código antigo
+const API_BASE = window.API_BASE;
+let authToken = window.authToken;
+let currentUser = window.currentUser;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,11 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showMainScreenWithoutAuth();
     }
     
-    // Carregar botão WhatsApp após um pequeno delay para garantir que o DOM está pronto
+    // Carregar botão WhatsApp
     setTimeout(() => {
-        if (!currentUser || currentUser.role !== 'admin') {
-            loadWhatsAppButton();
-        }
+        loadWhatsAppButton();
     }, 500);
 });
 
@@ -48,9 +51,18 @@ async function handleLogin(event) {
             if (data.token && data.data) {
                 authToken = data.token;
                 currentUser = data.data;
+                window.authToken = authToken;
+                window.currentUser = currentUser;
                 localStorage.setItem('auth_token', authToken);
                 localStorage.setItem('current_user', JSON.stringify(currentUser));
                 showMainScreen();
+                
+                // Mostrar botão WhatsApp (apenas visual)
+                const btn = document.getElementById('whatsapp-float-btn');
+                if (btn) {
+                    btn.style.display = 'flex';
+                    btn.style.zIndex = '9999';
+                }
 
                 // Se havia uma reserva pendente, abrir modal
                 if (window.pendingReservation) {
@@ -121,10 +133,19 @@ async function handleRegister(event) {
             if (data.token && data.data) {
                 authToken = data.token;
                 currentUser = data.data;
+                window.authToken = authToken;
+                window.currentUser = currentUser;
                 localStorage.setItem('auth_token', authToken);
                 localStorage.setItem('current_user', JSON.stringify(currentUser));
                 showMessage('Registro realizado com sucesso.', 'success');
                 showMainScreen();
+                
+                // Mostrar botão WhatsApp (apenas visual)
+                const btn = document.getElementById('whatsapp-float-btn');
+                if (btn) {
+                    btn.style.display = 'flex';
+                    btn.style.zIndex = '9999';
+                }
 
                 // Se havia uma reserva pendente, abrir modal
                 if (window.pendingReservation) {
@@ -158,6 +179,8 @@ function logout() {
         });
     }
     authToken = null;
+    window.authToken = null;
+    window.currentUser = null;
     currentUser = null;
     localStorage.removeItem('auth_token');
     localStorage.removeItem('current_user');
@@ -189,17 +212,30 @@ function showMainScreenWithoutAuth() {
     document.getElementById('main-nav-tabs').style.display = 'flex';
     showSection('catalog');
     loadMeats();
-    // Carregar e mostrar botão WhatsApp para visitantes
+    // Carregar botão WhatsApp
     loadWhatsAppButton();
 }
 
 function showMainScreen() {
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('main-screen').style.display = 'block';
-    document.getElementById('user-info').style.display = 'flex';
-    document.getElementById('guest-info').style.display = 'none';
-
-    document.getElementById('user-name').textContent = currentUser.name;
+    // Verificar se estamos na página de perfil (não tem esses elementos)
+    const authScreen = document.getElementById('auth-screen');
+    const mainScreen = document.getElementById('main-screen');
+    
+    if (!authScreen || !mainScreen) {
+        // Estamos em outra página (como profile.html), não fazer nada
+        return;
+    }
+    
+    authScreen.style.display = 'none';
+    mainScreen.style.display = 'block';
+    
+    const userInfo = document.getElementById('user-info');
+    const guestInfo = document.getElementById('guest-info');
+    const userName = document.getElementById('user-name');
+    
+    if (userInfo) userInfo.style.display = 'flex';
+    if (guestInfo) guestInfo.style.display = 'none';
+    if (userName && currentUser) userName.textContent = currentUser.name;
 
     // Se for admin, mostrar apenas o painel administrativo
     if (currentUser.role === 'admin') {
@@ -210,59 +246,86 @@ function showMainScreen() {
         loadAdminReservations();
         loadAdminMeats();
         loadAdminDates();
-        // Ocultar botão WhatsApp para admin
-        document.getElementById('whatsapp-float-btn').style.display = 'none';
     } else {
         // Se for cliente, mostrar abas normais
         document.getElementById('main-nav-tabs').style.display = 'flex';
         showSection('catalog');
         loadMeats();
-        // Carregar e mostrar botão WhatsApp para clientes
-        loadWhatsAppButton();
     }
+    
+    // Carregar botão WhatsApp
+    loadWhatsAppButton();
 }
 
 async function loadWhatsAppButton() {
     const btn = document.getElementById('whatsapp-float-btn');
-    if (!btn) return;
-    
-    // Não mostrar para admin
-    if (currentUser && currentUser.role === 'admin') {
-        btn.style.display = 'none';
+    if (!btn) {
+        console.warn('Botão WhatsApp não encontrado');
         return;
     }
     
     try {
-        const response = await fetch(`${API_BASE}/admin/whatsapp`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch WhatsApp number');
-        }
+        console.log('Carregando número do WhatsApp...');
+        const response = await fetch(`${API_BASE}/admin/whatsapp`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         
-        const data = await response.json();
+        console.log('Resposta WhatsApp status:', response.status);
         
-        if (data.whatsapp && data.whatsapp.trim() !== '') {
-            window.adminWhatsApp = data.whatsapp;
-            btn.style.display = 'flex';
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Dados WhatsApp recebidos:', data);
+            
+            // Verificar se há número e não está vazio
+            if (data && data.whatsapp !== null && data.whatsapp !== undefined) {
+                const whatsappNumber = String(data.whatsapp).trim();
+                
+                if (whatsappNumber !== '') {
+                    window.adminWhatsApp = whatsappNumber;
+                    btn.style.display = 'flex';
+                    btn.style.cursor = 'pointer';
+                    btn.onclick = openWhatsApp;
+                    console.log('Botão WhatsApp exibido com número:', whatsappNumber.substring(0, 5) + '...');
+                } else {
+                    console.log('Número WhatsApp vazio');
+                    btn.style.display = 'none';
+                }
+            } else {
+                console.log('Número WhatsApp não configurado (null/undefined)');
+                btn.style.display = 'none';
+            }
         } else {
+            console.error('Erro na resposta WhatsApp:', response.status);
             btn.style.display = 'none';
         }
     } catch (error) {
-        console.error('Error loading WhatsApp number:', error);
+        console.error('Erro ao carregar WhatsApp:', error);
         btn.style.display = 'none';
     }
 }
 
 function openWhatsApp() {
     if (!window.adminWhatsApp) {
-        showMessage('Número de contato não disponível no momento.', 'error');
+        showMessage('Número de WhatsApp não disponível.', 'error');
+        loadWhatsAppButton();
         return;
     }
-
-    // Remove any non-numeric characters
-    const phoneNumber = window.adminWhatsApp.replace(/\D/g, '');
-    const message = encodeURIComponent('Olá! Gostaria de entrar em contato.');
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
     
+    // Pegar o número do admin (ex: "66997227927")
+    const phoneNumber = window.adminWhatsApp.replace(/\D/g, ''); // Remove tudo que não é número
+    
+    if (!phoneNumber || phoneNumber.length < 10) {
+        showMessage('Número de WhatsApp inválido.', 'error');
+        return;
+    }
+    
+    // Criar link do WhatsApp: https://wa.me/66997227927
+    const whatsappUrl = `https://wa.me/${phoneNumber}`;
+    
+    // Abrir em nova aba
     window.open(whatsappUrl, '_blank');
 }
 

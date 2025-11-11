@@ -1,264 +1,382 @@
-// Profile Management
-const API_BASE = '/api/v1';
-let authToken = localStorage.getItem('auth_token');
-let currentUser = JSON.parse(localStorage.getItem('current_user') || 'null');
+// Profile Management - Usa variáveis globais do app.js
+// API_BASE, authToken e currentUser são globais do app.js
 
-// Função para exibir mensagens
-function showProfileMessage(message, type = 'info') {
-    // Criar elemento de mensagem temporário
-    const messageEl = document.createElement('div');
-    messageEl.className = `profile-message profile-message-${type}`;
-    messageEl.textContent = message;
-    messageEl.style.cssText = `
-        position: fixed;
-        top: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: ${type === 'error' ? 'var(--danger-color)' : type === 'success' ? 'var(--success-color)' : 'var(--primary-color)'};
-        color: white;
-        padding: 12px 24px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        z-index: 10000;
-        font-size: 14px;
-        font-weight: 600;
-        max-width: 90%;
-        text-align: center;
+// Mensagens
+function showProfileMessage(msg, type = 'info') {
+    const el = document.createElement('div');
+    el.textContent = msg;
+    el.style.cssText = `
+        position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+        background: ${type === 'error' ? '#ea1d2c' : type === 'success' ? '#00a859' : '#ea1d2c'};
+        color: white; padding: 12px 24px; border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10000;
+        font-size: 14px; font-weight: 600; max-width: 90%; text-align: center;
     `;
-    document.body.appendChild(messageEl);
-    
-    setTimeout(() => {
-        messageEl.remove();
-    }, 3000);
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
 }
 
-// Initialize profile page
-document.addEventListener('DOMContentLoaded', () => {
-    if (!authToken || !currentUser) {
+// Carregar perfil do servidor
+async function loadProfile() {
+    // Usar variáveis globais do app.js
+    const token = window.authToken || localStorage.getItem('auth_token');
+    if (!token) {
         window.location.href = '/app/index.html';
         return;
     }
 
-    loadProfile();
-});
-
-async function loadProfile() {
-    try {
-        console.log('Loading profile...', { hasToken: !!authToken });
-        
-        if (!authToken) {
-            window.location.href = '/app/index.html';
-            return;
+    // Tentar usar cache primeiro para mostrar dados imediatamente
+    const cached = JSON.parse(localStorage.getItem('current_user') || 'null');
+    if (cached && cached.id) {
+        if (window.currentUser !== undefined) {
+            window.currentUser = cached;
         }
-        
-        const response = await fetch(`${API_BASE}/auth/me`, {
+        fillForm(cached);
+    }
+
+    try {
+        // Usar API_BASE global do app.js
+        const apiBase = window.API_BASE || '/api/v1';
+        const response = await fetch(`${apiBase}/auth/me`, {
+            method: 'GET',
             headers: {
-                'Authorization': `Bearer ${authToken}`,
-                'Accept': 'application/json'
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             }
         });
 
+        if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('current_user');
+            showProfileMessage('Sessão expirada. Faça login novamente.', 'error');
+            setTimeout(() => window.location.href = '/app/index.html', 2000);
+            return;
+        }
+
         if (!response.ok) {
-            if (response.status === 401) {
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('current_user');
-                window.location.href = '/app/index.html';
-                return;
+            throw new Error(`Erro ${response.status}: Não foi possível carregar o perfil`);
+        }
+
+        const result = await response.json();
+        
+        // A API retorna { data: { ... } }
+        const userData = result.data;
+        
+        if (userData && userData.id) {
+            // Atualizar variável global
+            if (window.currentUser !== undefined) {
+                window.currentUser = userData;
             }
-            throw new Error(`HTTP ${response.status}: Não foi possível carregar o perfil`);
+            localStorage.setItem('current_user', JSON.stringify(userData));
+            fillForm(userData);
+        } else {
+            throw new Error('Dados do perfil inválidos');
         }
-
-        const data = await response.json();
-        console.log('Profile data received:', data);
-        
-        if (!data.data) {
-            throw new Error('Dados do perfil não encontrados na resposta');
-        }
-        
-        currentUser = data.data;
-        localStorage.setItem('current_user', JSON.stringify(currentUser));
-
-        // Update UI - garantir que os elementos existam
-        const profileNameEl = document.getElementById('profile-name');
-        const profileEmailEl = document.getElementById('profile-email');
-        const profileNameInput = document.getElementById('profile-name-input');
-        const profileEmailInput = document.getElementById('profile-email-input');
-        const profilePhoneInput = document.getElementById('profile-phone-input');
-        const profileAvatarUrlInput = document.getElementById('profile-avatar-url-input');
-        
-        if (profileNameEl) profileNameEl.textContent = currentUser.name || 'Usuário';
-        if (profileEmailEl) profileEmailEl.textContent = currentUser.email || '';
-        if (profileNameInput) profileNameInput.value = currentUser.name || '';
-        if (profileEmailInput) profileEmailInput.value = currentUser.email || '';
-        if (profilePhoneInput) profilePhoneInput.value = currentUser.phone || '';
-        if (profileAvatarUrlInput) profileAvatarUrlInput.value = currentUser.avatar_url || '';
-
-        // Show WhatsApp field for admin
-        if (currentUser.role === 'admin') {
-            const adminWhatsappField = document.getElementById('admin-whatsapp-field');
-            const profileWhatsappInput = document.getElementById('profile-whatsapp-input');
-            if (adminWhatsappField) adminWhatsappField.style.display = 'block';
-            if (profileWhatsappInput) profileWhatsappInput.value = currentUser.whatsapp || '';
-        }
-
-        // Update avatar
-        updateAvatar(currentUser.avatar_url);
-        
-        console.log('Profile loaded successfully');
     } catch (error) {
-        console.error('Error loading profile:', error);
-        showProfileMessage('Não foi possível carregar o perfil. Por favor, tente novamente.', 'error');
-        
-        // Se for erro de autenticação, redirecionar após um delay
-        if (error.message && (error.message.includes('401') || error.message.includes('Unauthenticated'))) {
-            setTimeout(() => {
-                window.location.href = '/app/index.html';
-            }, 2000);
+        console.error('Erro ao carregar perfil:', error);
+        // Se falhar, manter dados em cache se existirem
+        if (!cached || !cached.id) {
+            showProfileMessage('Erro ao carregar perfil. Tente recarregar a página.', 'error');
         }
     }
 }
 
-function updateAvatar(avatarUrl) {
-    const avatarImg = document.getElementById('profile-avatar');
-    if (!avatarImg) return;
+// Preencher formulário com dados do usuário
+function fillForm(user) {
+    console.log('Preenchendo formulário com:', user);
     
-    if (avatarUrl && avatarUrl.trim() !== '') {
-        avatarImg.src = avatarUrl;
-        avatarImg.style.display = 'block';
-        avatarImg.onerror = function() {
-            // Se a imagem falhar ao carregar, usar inicial
-            showDefaultAvatar();
-        };
+    const nameEl = document.getElementById('profile-name');
+    const emailEl = document.getElementById('profile-email');
+    const nameInput = document.getElementById('profile-name-input');
+    const emailInput = document.getElementById('profile-email-input');
+    const phoneInput = document.getElementById('profile-phone-input');
+    const avatarInput = document.getElementById('profile-avatar-url-input');
+    const whatsappInput = document.getElementById('profile-whatsapp-input');
+    const adminField = document.getElementById('admin-whatsapp-field');
+    
+    if (nameEl) nameEl.textContent = user.name || 'Usuário';
+    if (emailEl) emailEl.textContent = user.email || 'Sem e-mail';
+    if (nameInput) {
+        nameInput.value = user.name || '';
+        nameInput.disabled = false;
+    }
+    if (emailInput) {
+        emailInput.value = user.email || '';
+        emailInput.disabled = true; // Email não pode ser editado
+    }
+    if (phoneInput) {
+        phoneInput.value = user.phone || '';
+        phoneInput.disabled = false;
+    }
+    if (avatarInput) avatarInput.value = user.avatar_url || '';
+    
+    // Campo WhatsApp do admin
+    if (user.role === 'admin') {
+        if (adminField) adminField.style.display = 'block';
+        if (whatsappInput) {
+            whatsappInput.value = user.whatsapp || '';
+            whatsappInput.disabled = false;
+        }
+    } else {
+        if (adminField) adminField.style.display = 'none';
+    }
+    
+    updateAvatar(user.avatar_url);
+}
+
+// Avatar
+function updateAvatar(url) {
+    const img = document.getElementById('profile-avatar');
+    if (!img) return;
+    
+    if (url && url.trim()) {
+        img.src = url;
+        img.onerror = () => showDefaultAvatar();
     } else {
         showDefaultAvatar();
     }
 }
 
 function showDefaultAvatar() {
-    const avatarImg = document.getElementById('profile-avatar');
-    if (!avatarImg) return;
+    const img = document.getElementById('profile-avatar');
+    if (!img) return;
     
-    const userName = currentUser ? currentUser.name : 'U';
-    const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color') || '#ea1d2c';
+    const user = window.currentUser || JSON.parse(localStorage.getItem('current_user') || 'null');
+    const name = user ? (user.name || 'U') : 'U';
+    const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const size = window.innerWidth <= 768 ? 100 : 120;
+    const fontSize = window.innerWidth <= 768 ? 40 : 48;
     
-    avatarImg.src = `data:image/svg+xml,${encodeURIComponent(`
-        <svg width="140" height="140" xmlns="http://www.w3.org/2000/svg">
-            <rect width="140" height="140" fill="${primaryColor}" rx="70"/>
-            <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="48" font-weight="bold" font-family="Arial, sans-serif">${initials}</text>
+    img.src = `data:image/svg+xml,${encodeURIComponent(`
+        <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <rect width="${size}" height="${size}" fill="#ea1d2c" rx="${size/2}"/>
+            <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" 
+                  fill="white" font-size="${fontSize}" font-weight="bold" font-family="Arial">${initials}</text>
         </svg>
     `)}`;
-    avatarImg.style.display = 'block';
+    img.onerror = null;
 }
 
-async function handleAvatarUpload(event) {
+// Upload avatar
+function handleAvatarUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-
-    // Validate file type
+    
     if (!file.type.startsWith('image/')) {
-        showProfileMessage('Por favor, selecione uma imagem válida.', 'error');
+        showProfileMessage('Selecione uma imagem válida.', 'error');
         return;
     }
-
-    // Validate file size (max 5MB)
+    
     if (file.size > 5 * 1024 * 1024) {
-        showProfileMessage('A imagem deve ter no máximo 5MB.', 'error');
+        showProfileMessage('Imagem deve ter no máximo 5MB.', 'error');
         return;
     }
-
-    // Create preview and convert to data URL
+    
     const reader = new FileReader();
     reader.onload = (e) => {
-        const avatarImg = document.getElementById('profile-avatar');
-        const avatarUrlInput = document.getElementById('profile-avatar-url-input');
-        if (avatarImg) {
-            avatarImg.src = e.target.result;
-            avatarImg.onerror = null; // Reset error handler
-        }
-        // Store data URL - será salvo quando o usuário salvar o perfil
-        if (avatarUrlInput) {
-            avatarUrlInput.value = e.target.result;
-        }
-        showProfileMessage('Imagem carregada! Clique em "Salvar Alterações" para confirmar.', 'success');
+        const img = document.getElementById('profile-avatar');
+        const input = document.getElementById('profile-avatar-url-input');
+        if (img) img.src = e.target.result;
+        if (input) input.value = e.target.result;
+        showProfileMessage('Imagem carregada! Clique em "Salvar Alterações".', 'success');
     };
-    reader.onerror = () => {
-        showProfileMessage('Erro ao carregar a imagem. Tente novamente.', 'error');
-    };
+    reader.onerror = () => showProfileMessage('Erro ao carregar imagem.', 'error');
     reader.readAsDataURL(file);
 }
 
+// Salvar perfil
 async function handleProfileUpdate(event) {
     event.preventDefault();
-
+    
+    const token = window.authToken || localStorage.getItem('auth_token');
+    if (!token) {
+        showProfileMessage('Não autenticado. Faça login novamente.', 'error');
+        window.location.href = '/app/index.html';
+        return;
+    }
+    
     const nameInput = document.getElementById('profile-name-input');
     const phoneInput = document.getElementById('profile-phone-input');
-    const avatarUrlInput = document.getElementById('profile-avatar-url-input');
-    const whatsappInput = currentUser && currentUser.role === 'admin' 
-        ? document.getElementById('profile-whatsapp-input')
-        : null;
-
+    const avatarInput = document.getElementById('profile-avatar-url-input');
+    const whatsappInput = document.getElementById('profile-whatsapp-input');
+    
     if (!nameInput) {
-        showProfileMessage('Erro ao carregar formulário. Por favor, recarregue a página.', 'error');
+        showProfileMessage('Erro ao carregar formulário.', 'error');
         return;
     }
-
+    
     const name = nameInput.value.trim();
-    const phone = phoneInput ? phoneInput.value.trim() : '';
-    const avatarUrl = avatarUrlInput ? avatarUrlInput.value.trim() : '';
-    const whatsapp = whatsappInput ? whatsappInput.value.trim() : null;
-
     if (!name) {
         showProfileMessage('O nome é obrigatório.', 'error');
+        nameInput.focus();
         return;
     }
-
+    
+    const user = window.currentUser || JSON.parse(localStorage.getItem('current_user') || 'null');
+    
+    const data = {
+        name: name,
+        phone: phoneInput ? (phoneInput.value.trim() || null) : null,
+        avatar_url: avatarInput ? (avatarInput.value.trim() || null) : null,
+    };
+    
+    // Adicionar WhatsApp apenas se for admin
+    if (user && user.role === 'admin' && whatsappInput) {
+        const whatsappValue = whatsappInput.value.trim();
+        data.whatsapp = whatsappValue !== '' ? whatsappValue : null;
+        console.log('Enviando WhatsApp para salvar:', data.whatsapp);
+    }
+    
+    console.log('Dados a serem salvos:', data);
+    
+    const btn = event.target.querySelector('button[type="submit"]');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
+    }
+    
     try {
-        const requestData = {
-            name,
-            phone: phone || null,
-            avatar_url: avatarUrl || null,
-        };
-
-        if (currentUser && currentUser.role === 'admin') {
-            requestData.whatsapp = whatsapp || null;
-        }
-
-        const response = await fetch(`${API_BASE}/auth/profile`, {
+        const apiBase = window.API_BASE || '/api/v1';
+        const response = await fetch(`${apiBase}/auth/profile`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`,
+                'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json'
             },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify(data)
         });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            // Update local storage
-            currentUser = data.data;
-            localStorage.setItem('current_user', JSON.stringify(currentUser));
-
-            // Update UI
-            const profileNameEl = document.getElementById('profile-name');
-            if (profileNameEl) profileNameEl.textContent = currentUser.name;
-            updateAvatar(currentUser.avatar_url);
-
-            showProfileMessage(data.message || 'Perfil atualizado com sucesso.', 'success');
-
-            // Reload profile data after a short delay
+        
+        const result = await response.json();
+        console.log('Resposta do servidor:', result);
+        
+        if (response.ok && result.data) {
+            // Atualizar variável global
+            if (window.currentUser !== undefined) {
+                window.currentUser = result.data;
+            }
+            localStorage.setItem('current_user', JSON.stringify(result.data));
+            fillForm(result.data);
+            showProfileMessage(result.message || 'Perfil atualizado!', 'success');
+            
+            // Recarregar botão WhatsApp após salvar
             setTimeout(() => {
-                loadProfile();
-            }, 1500);
+                if (typeof loadWhatsAppButton === 'function') {
+                    loadWhatsAppButton();
+                }
+            }, 500);
         } else {
-            const errorMsg = data.message || (data.errors ? Object.values(data.errors).flat().join(', ') : 'Não foi possível atualizar o perfil.');
-            showProfileMessage(errorMsg, 'error');
+            const msg = result.message || (result.errors ? Object.values(result.errors).flat().join(', ') : 'Erro ao atualizar.');
+            showProfileMessage(msg, 'error');
+            
+            if (response.status === 401) {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('current_user');
+                setTimeout(() => window.location.href = '/app/index.html', 2000);
+            }
         }
     } catch (error) {
-        console.error('Error updating profile:', error);
-        showProfileMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+        showProfileMessage('Erro de conexão: ' + error.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     }
 }
 
+// ========== WHATSAPP BUTTON ==========
+
+// Carregar número do WhatsApp do admin
+async function loadWhatsAppButtonForProfile() {
+    const btn = document.getElementById('whatsapp-float-btn');
+    if (!btn) {
+        return;
+    }
+    
+    try {
+        const apiBase = window.API_BASE || '/api/v1';
+        const response = await fetch(`${apiBase}/admin/whatsapp`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Verificar se há número e não está vazio
+            if (data && data.whatsapp !== null && data.whatsapp !== undefined) {
+                const whatsappNumber = String(data.whatsapp).trim();
+                
+                if (whatsappNumber !== '') {
+                    window.adminWhatsApp = whatsappNumber;
+                    btn.style.display = 'flex';
+                    btn.style.cursor = 'pointer';
+                    btn.onclick = openWhatsApp;
+                } else {
+                    btn.style.display = 'none';
+                }
+            } else {
+                btn.style.display = 'none';
+            }
+        } else {
+            btn.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Erro ao carregar WhatsApp:', error);
+        btn.style.display = 'none';
+    }
+}
+
+// Abrir WhatsApp - Funcionalidade simples
+function openWhatsApp() {
+    if (!window.adminWhatsApp) {
+        showProfileMessage('Número de WhatsApp não disponível.', 'error');
+        if (typeof loadWhatsAppButton === 'function') {
+            loadWhatsAppButton();
+        } else {
+            loadWhatsAppButtonForProfile();
+        }
+        return;
+    }
+    
+    // Pegar o número do admin (ex: "66997227927")
+    const phoneNumber = window.adminWhatsApp.replace(/\D/g, ''); // Remove tudo que não é número
+    
+    if (!phoneNumber || phoneNumber.length < 10) {
+        showProfileMessage('Número de WhatsApp inválido.', 'error');
+        return;
+    }
+    
+    // Criar link do WhatsApp: https://wa.me/66997227927
+    const whatsappUrl = `https://wa.me/${phoneNumber}`;
+    
+    // Abrir em nova aba
+    window.open(whatsappUrl, '_blank');
+}
+
+// Tornar função global
+window.openWhatsApp = openWhatsApp;
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+    const token = window.authToken || localStorage.getItem('auth_token');
+    if (!token) {
+        window.location.href = '/app/index.html';
+        return;
+    }
+    
+    // Carregar perfil
+    loadProfile();
+    
+    // Carregar botão WhatsApp - usar função do app.js se disponível
+    setTimeout(() => {
+        if (typeof loadWhatsAppButton === 'function') {
+            loadWhatsAppButton();
+        } else {
+            loadWhatsAppButtonForProfile();
+        }
+    }, 500);
+});

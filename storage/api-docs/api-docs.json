@@ -820,6 +820,72 @@
                 ]
             }
         },
+        "/api/v1/auth/profile": {
+            "put": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Atualizar perfil do usuário",
+                "description": "Atualiza os dados do usuário autenticado",
+                "operationId": "32110a28f8df36453a3e40f44baf10ad",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "João Silva"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "(65) 99999-9999"
+                                    },
+                                    "whatsapp": {
+                                        "type": "string",
+                                        "example": "5565999999999"
+                                    },
+                                    "avatar_url": {
+                                        "type": "string",
+                                        "example": "https://example.com/avatar.jpg"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Perfil atualizado com sucesso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "422": {
+                        "description": "Erro de validação"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/availability/dates": {
             "get": {
                 "tags": [

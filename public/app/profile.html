@@ -20,7 +20,7 @@
                     </button>
                 </div>
                 <div class="header-center">
-                    <h1 style="margin: 0; font-size: 1.2rem; font-weight: 600; color: white; text-align: center;">Perfil</h1>
+                    <h1>Perfil</h1>
                 </div>
                 <div class="header-right"></div>
             </div>
@@ -28,7 +28,7 @@
 
         <div class="profile-container">
             <!-- Avatar Section -->
-            <div class="profile-avatar-section">
+            <div class="profile-avatar-section" id="profile-avatar-section">
                 <div class="avatar-wrapper">
                     <img id="profile-avatar" src="" alt="Avatar" class="profile-avatar">
                     <button onclick="document.getElementById('avatar-upload').click()" class="avatar-edit-btn" title="Alterar foto">
@@ -37,8 +37,8 @@
                     <input type="file" id="avatar-upload" accept="image/*" style="display: none;" onchange="handleAvatarUpload(event)">
                     <input type="hidden" id="profile-avatar-url-input">
                 </div>
-                <h2 id="profile-name" class="profile-name"></h2>
-                <p id="profile-email" class="profile-email"></p>
+                <h2 id="profile-name" class="profile-name">Usuário</h2>
+                <p id="profile-email" class="profile-email">Carregando...</p>
             </div>
 
             <!-- Form Section -->
@@ -76,8 +76,12 @@
         </div>
     </div>
 
+    <!-- WhatsApp Float Button -->
+    <div id="whatsapp-float-btn" class="whatsapp-float-btn" style="display: none; z-index: 9999;" onclick="openWhatsApp()" title="Fale conosco no WhatsApp">
+        <i class="bi bi-whatsapp"></i>
+    </div>
+
     <script src="/app/app.js"></script>
     <script src="/app/profile.js"></script>
 </body>
 </html>
-

@@ -28,10 +28,41 @@ Route::prefix('v1')->group(function () {
 
     // Public admin contact
     Route::get('/admin/whatsapp', function () {
-        $admin = \App\Models\User::where('role', 'admin')->first();
-        return response()->json([
-            'whatsapp' => $admin?->whatsapp ?? null,
-        ]);
+        try {
+            $admin = \App\Models\User::where('role', 'admin')->first();
+            
+            if (!$admin) {
+                \Log::warning('No admin user found');
+                return response()->json([
+                    'whatsapp' => null,
+                ], 200);
+            }
+            
+            $whatsapp = $admin->whatsapp ?? null;
+            
+            // Limpar o número (remover espaços e caracteres especiais se necessário)
+            if ($whatsapp) {
+                $whatsapp = trim($whatsapp);
+                // Se estiver vazio após trim, retornar null
+                if ($whatsapp === '') {
+                    $whatsapp = null;
+                }
+            }
+            
+            \Log::info('WhatsApp number fetched', [
+                'admin_id' => $admin->id,
+                'whatsapp' => $whatsapp ? 'present' : 'null'
+            ]);
+            
+            return response()->json([
+                'whatsapp' => $whatsapp,
+            ], 200);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching WhatsApp number: ' . $e->getMessage());
+            return response()->json([
+                'whatsapp' => null,
+            ], 200);
+        }
     });
 
     // Protected routes

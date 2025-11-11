@@ -1,0 +1,1903 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Sistema de Agendamento de Carnes API",
+        "description": "API REST para sistema de agendamento e reserva de carnes",
+        "contact": {
+            "email": "admin@local.test"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://my-default-host.com",
+            "description": "API Server"
+        }
+    ],
+    "paths": {
+        "/api/v1/admin/meats": {
+            "get": {
+                "tags": [
+                    "Admin/Meats"
+                ],
+                "summary": "Listar todas as carnes (Admin)",
+                "description": "Retorna todas as carnes do sistema, incluindo inativas",
+                "operationId": "b86051b48301bc311cebd91393f61f2f",
+                "responses": {
+                    "200": {
+                        "description": "Lista de carnes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Meat"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Acesso negado - requer permissão de admin",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Acesso negado. Apenas administradores podem acessar este recurso."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Admin/Meats"
+                ],
+                "summary": "Criar nova carne (Admin)",
+                "operationId": "619bf42421bb33bae49b031926bac896",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Picanha"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "example": "picanha"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Corte nobre"
+                                    },
+                                    "price_per_kg": {
+                                        "type": "number",
+                                        "example": 89.9
+                                    },
+                                    "image_url": {
+                                        "type": "string",
+                                        "example": "https://example.com/image.jpg"
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Carne criada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Meat"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "403": {
+                        "description": "Acesso negado"
+                    },
+                    "422": {
+                        "description": "Erro de validação"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/meats/{id}": {
+            "get": {
+                "tags": [
+                    "Admin/Meats"
+                ],
+                "summary": "Detalhes de uma carne (Admin)",
+                "operationId": "1c8cccdc35eb6a7d35115b8200a176b4",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detalhes da carne",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Meat"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "403": {
+                        "description": "Acesso negado"
+                    },
+                    "404": {
+                        "description": "Carne não encontrada"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Admin/Meats"
+                ],
+                "summary": "Atualizar carne (Admin)",
+                "operationId": "3b38a7697309c52a1b4346f42361469d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Meat"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Carne atualizada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Meat"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "403": {
+                        "description": "Acesso negado"
+                    },
+                    "404": {
+                        "description": "Carne não encontrada"
+                    },
+                    "422": {
+                        "description": "Erro de validação"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Admin/Meats"
+                ],
+                "summary": "Remover carne (Admin)",
+                "operationId": "5bb326a6008a17af1bc706b95e63b007",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Carne removida",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Carne removida com sucesso."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "403": {
+                        "description": "Acesso negado"
+                    },
+                    "404": {
+                        "description": "Carne não encontrada"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/reservations": {
+            "get": {
+                "tags": [
+                    "Admin/Reservations"
+                ],
+                "summary": "Listar todas as reservas (Admin)",
+                "description": "Retorna todas as reservas do sistema com filtros opcionais",
+                "operationId": "79ea69d5738720b4a1123ea45e70aa81",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filtrar por status",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "reserved",
+                                "canceled",
+                                "fulfilled"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "description": "Filtrar por data (YYYY-MM-DD)",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "meat_id",
+                        "in": "query",
+                        "description": "Filtrar por tipo de carne (UUID)",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "user",
+                        "in": "query",
+                        "description": "Buscar por nome ou email do usuário",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número da página",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de reservas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Reservation"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "403": {
+                        "description": "Acesso negado - requer permissão de admin"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/reservations/{id}/fulfill": {
+            "post": {
+                "tags": [
+                    "Admin/Reservations"
+                ],
+                "summary": "Concluir retirada (Admin)",
+                "description": "Marca uma reserva como concluída (fulfilled) e atualiza o status da peça para 'picked_up'",
+                "operationId": "f5860b42558b224b7dfe142ec9100386",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "UUID da reserva",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Retirada concluída com sucesso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Reservation"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Retirada concluída com sucesso."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Reserva não pode ser concluída",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Apenas reservas com status 'reserved' podem ser concluídas."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "403": {
+                        "description": "Acesso negado - requer permissão de admin"
+                    },
+                    "404": {
+                        "description": "Reserva não encontrada"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/register": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Registrar novo usuário",
+                "description": "Cria uma nova conta de cliente no sistema. Retorna o usuário criado e um token de autenticação.",
+                "operationId": "b9e746d77661fb8df55d0ac63e1ece77",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "description": "Nome completo do usuário",
+                                        "type": "string",
+                                        "example": "João Silva"
+                                    },
+                                    "email": {
+                                        "description": "E-mail único do usuário",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "joao@example.com"
+                                    },
+                                    "password": {
+                                        "description": "Senha (mínimo 8 caracteres)",
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    },
+                                    "password_confirmation": {
+                                        "description": "Confirmação da senha",
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    },
+                                    "phone": {
+                                        "description": "Telefone (opcional)",
+                                        "type": "string",
+                                        "example": "(65) 99999-9999"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Usuário criado com sucesso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "1|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erro de validação",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "O nome é obrigatório. (e mais 2 erros)"
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "name": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "O nome é obrigatório."
+                                                    }
+                                                },
+                                                "email": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "Este e-mail já está cadastrado."
+                                                    }
+                                                },
+                                                "password": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "A confirmação de senha não confere."
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Fazer login",
+                "description": "Autentica um usuário e retorna um token de acesso. O token deve ser usado no header Authorization: Bearer {token}",
+                "operationId": "a7997e7c1e3bfed64d4e56de82415931",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "joao@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login realizado com sucesso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "1|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Credenciais inválidas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "As credenciais fornecidas estão incorretas."
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "email": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "As credenciais fornecidas estão incorretas."
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erro de validação",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "O e-mail é obrigatório."
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "email": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "O e-mail é obrigatório."
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Fazer logout",
+                "description": "Invalida o token de autenticação atual do usuário",
+                "operationId": "f6b8957b4c0b25636613a9f0512a8ba9",
+                "responses": {
+                    "200": {
+                        "description": "Logout realizado com sucesso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logout realizado com sucesso."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/me": {
+            "get": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Obter perfil do usuário autenticado",
+                "description": "Retorna os dados do usuário autenticado",
+                "operationId": "37d33f0281f67d31d05b4c45eea0143b",
+                "responses": {
+                    "200": {
+                        "description": "Perfil do usuário",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/availability/dates": {
+            "get": {
+                "tags": [
+                    "Availability"
+                ],
+                "summary": "Listar datas disponíveis",
+                "description": "Retorna todas as datas futuras que estão abertas para agendamento",
+                "operationId": "7e44e902207cc2bc41cf4352d1a7b6bf",
+                "responses": {
+                    "200": {
+                        "description": "Lista de datas disponíveis",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AvailableDate"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/availability/dates/{date}/slots": {
+            "get": {
+                "tags": [
+                    "Availability"
+                ],
+                "summary": "Listar horários de uma data",
+                "description": "Retorna todos os horários de retirada disponíveis para uma data específica, incluindo capacidade e reservas",
+                "operationId": "6d95923709cba0f29da4e2eaa5a896f9",
+                "parameters": [
+                    {
+                        "name": "date",
+                        "in": "path",
+                        "description": "Data no formato YYYY-MM-DD",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2024-11-15"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de horários",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PickupSlot"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Data não encontrada ou não está aberta",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No query results for model [App\\\\Models\\\\AvailableDate]"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/meats": {
+            "get": {
+                "tags": [
+                    "Meats"
+                ],
+                "summary": "Listar carnes disponíveis",
+                "description": "Retorna uma lista paginada de carnes disponíveis. Por padrão, retorna apenas carnes ativas.",
+                "operationId": "b27c37107630df49194defd49e3f03c7",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "description": "Busca por nome (busca parcial)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "picanha"
+                        }
+                    },
+                    {
+                        "name": "active",
+                        "in": "query",
+                        "description": "Filtrar por status ativo (true/false). Se não informado, retorna apenas ativas.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "example": true
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número da página",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de carnes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Meat"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/meats/{id}": {
+            "get": {
+                "tags": [
+                    "Meats"
+                ],
+                "summary": "Detalhes de uma carne",
+                "description": "Retorna os detalhes completos de uma carne, incluindo peças disponíveis",
+                "operationId": "cad9ee81418af9e4b5cbba0adec52346",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "UUID da carne",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "550e8400-e29b-41d4-a716-446655440000"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detalhes da carne",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Meat"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Carne não encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No query results for model [App\\\\Models\\\\Meat] {id}"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "UUID inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The id must be a valid UUID."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/meats/{id}/items": {
+            "get": {
+                "tags": [
+                    "Meats"
+                ],
+                "summary": "Listar peças disponíveis de uma carne",
+                "description": "Retorna todas as peças disponíveis de um tipo de carne específico",
+                "operationId": "f091555ec330e6fc2181343f594c1326",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "UUID da carne",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de peças disponíveis",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/MeatItem"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Carne não encontrada"
+                    }
+                }
+            }
+        },
+        "/api/v1/reservations": {
+            "post": {
+                "tags": [
+                    "Reservations"
+                ],
+                "summary": "Criar nova reserva",
+                "description": "Cria uma nova reserva de uma peça de carne. A peça deve estar disponível e o horário deve ter capacidade. Usa transações com locks para evitar reservas duplicadas.",
+                "operationId": "8a099249c009bb79e91d5ded3b235096",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "meat_item_id",
+                                    "available_date_id",
+                                    "pickup_slot_id"
+                                ],
+                                "properties": {
+                                    "meat_item_id": {
+                                        "description": "UUID da peça de carne",
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                                    },
+                                    "available_date_id": {
+                                        "description": "UUID da data disponível",
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "550e8400-e29b-41d4-a716-446655440001"
+                                    },
+                                    "pickup_slot_id": {
+                                        "description": "UUID do horário de retirada",
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "550e8400-e29b-41d4-a716-446655440002"
+                                    },
+                                    "notes": {
+                                        "description": "Observações sobre a reserva (opcional)",
+                                        "type": "string",
+                                        "example": "Observações opcionais"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Reserva criada com sucesso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Reservation"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Erro na requisição",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Esta data não está aberta para agendamentos."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Acesso negado - apenas clientes podem criar reservas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "This action is unauthorized."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflito - peça ou horário indisponível",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Esta peça não está disponível para reserva."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erro de validação",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "A peça de carne é obrigatória. (e mais 2 erros)"
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "meat_item_id": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "A peça selecionada não existe."
+                                                    }
+                                                },
+                                                "available_date_id": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "A data selecionada não existe."
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/reservations/my": {
+            "get": {
+                "tags": [
+                    "Reservations"
+                ],
+                "summary": "Listar minhas reservas",
+                "description": "Retorna todas as reservas do usuário autenticado, com paginação",
+                "operationId": "2c13d995c298a286e273459704b4b886",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filtrar por status",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "reserved",
+                                "canceled",
+                                "fulfilled"
+                            ],
+                            "example": "reserved"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número da página",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de reservas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Reservation"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/reservations/{id}": {
+            "get": {
+                "tags": [
+                    "Reservations"
+                ],
+                "summary": "Detalhes de uma reserva",
+                "description": "Retorna os detalhes completos de uma reserva. Apenas o dono da reserva ou admin pode visualizar.",
+                "operationId": "bd8d4153599117084526a3536d3c2b3a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "UUID da reserva",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "550e8400-e29b-41d4-a716-446655440000"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detalhes da reserva",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Reservation"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Acesso negado - não é o dono da reserva",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "This action is unauthorized."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva não encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No query results for model [App\\\\Models\\\\Reservation] {id}"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/reservations/{id}/cancel": {
+            "post": {
+                "tags": [
+                    "Reservations"
+                ],
+                "summary": "Cancelar uma reserva",
+                "description": "Cancela uma reserva. Apenas o dono pode cancelar e apenas se estiver com status 'reserved' e antes do horário de retirada. A peça volta para 'available'.",
+                "operationId": "5baddcdcda5276351d7b2305a5722ac5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "UUID da reserva",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "550e8400-e29b-41d4-a716-446655440000"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reserva cancelada com sucesso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Reservation"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Reserva cancelada com sucesso."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Reserva não pode ser cancelada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Esta reserva não pode ser cancelada."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Acesso negado - não é o dono da reserva",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "This action is unauthorized."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva não encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No query results for model [App\\\\Models\\\\Reservation] {id}"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "User": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "João Silva"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "joao@example.com"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "example": "(65) 99999-9999",
+                        "nullable": true
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "admin",
+                            "customer"
+                        ],
+                        "example": "customer"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Meat": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Picanha"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "picanha"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "price_per_kg": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 89.9,
+                        "nullable": true
+                    },
+                    "image_url": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "available_count": {
+                        "type": "integer",
+                        "example": 15
+                    }
+                },
+                "type": "object"
+            },
+            "MeatItem": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "meat_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "code": {
+                        "type": "string",
+                        "example": "PICANHA-ABC12345"
+                    },
+                    "weight_kg": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 2.5,
+                        "nullable": true
+                    },
+                    "fixed_price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 224.75,
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "available",
+                            "reserved",
+                            "picked_up",
+                            "canceled"
+                        ],
+                        "example": "available"
+                    }
+                },
+                "type": "object"
+            },
+            "AvailableDate": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-11-15"
+                    },
+                    "is_open": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "notes": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PickupSlot": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "available_date_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "start_at": {
+                        "type": "string",
+                        "example": "09:00"
+                    },
+                    "end_at": {
+                        "type": "string",
+                        "example": "09:30"
+                    },
+                    "capacity": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "reserved_count": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "available_capacity": {
+                        "type": "integer",
+                        "example": 2
+                    }
+                },
+                "type": "object"
+            },
+            "Reservation": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "user_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "meat_item_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "available_date_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "pickup_slot_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "pickup_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "reserved",
+                            "canceled",
+                            "fulfilled"
+                        ],
+                        "example": "reserved"
+                    },
+                    "notes": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "Error": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Erro de validação"
+                    },
+                    "errors": {
+                        "type": "object",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ValidationError": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "O nome é obrigatório. (e mais 2 erros)"
+                    },
+                    "errors": {
+                        "properties": {
+                            "field_name": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "example": "Mensagem de erro específica"
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "UnauthenticatedError": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Unauthenticated."
+                    }
+                },
+                "type": "object"
+            },
+            "UnauthorizedError": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "This action is unauthorized."
+                    }
+                },
+                "type": "object"
+            },
+            "NotFoundError": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "No query results for model [App\\\\Models\\\\Meat] {id}"
+                    }
+                },
+                "type": "object"
+            },
+            "ConflictError": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Esta peça não está disponível para reserva."
+                    }
+                },
+                "type": "object"
+            },
+            "PaginationMeta": {
+                "properties": {
+                    "current_page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "last_page": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 50
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Admin/Meats",
+            "description": "Endpoints administrativos para gerenciamento de carnes (requer autenticação e permissão de admin)"
+        },
+        {
+            "name": "Admin/Reservations",
+            "description": "Endpoints administrativos para gerenciamento de reservas"
+        },
+        {
+            "name": "Auth",
+            "description": "Endpoints de autenticação e gerenciamento de usuários"
+        },
+        {
+            "name": "Availability",
+            "description": "Endpoints de disponibilidade e horários de retirada"
+        },
+        {
+            "name": "Meats",
+            "description": "Endpoints públicos do catálogo de carnes"
+        },
+        {
+            "name": "Reservations",
+            "description": "Endpoints de reservas (cliente)"
+        }
+    ]
+}

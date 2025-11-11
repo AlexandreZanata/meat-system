@@ -172,10 +172,10 @@ function showMainScreenWithoutAuth() {
     document.getElementById('user-info').style.display = 'none';
     document.getElementById('guest-info').style.display = 'flex';
 
-    // Esconder seção de reservas e admin se não estiver logado
+    // Esconder seção de reservas se não estiver logado
     const navTabs = document.querySelectorAll('.nav-tab');
     navTabs.forEach(tab => {
-        if (tab.textContent.includes('Reservas') || tab.textContent.includes('Admin')) {
+        if (tab.textContent.includes('Reservas')) {
             tab.style.display = 'none';
         }
     });
@@ -194,32 +194,16 @@ function showMainScreen() {
 
     // Se for admin, mostrar apenas o painel administrativo
     if (currentUser.role === 'admin') {
-        const navTabs = document.querySelectorAll('.nav-tab');
-        navTabs.forEach(tab => {
-            // Esconder todas as abas exceto Admin
-            if (!tab.textContent.includes('Admin')) {
-                tab.style.display = 'none';
-            } else {
-                tab.style.display = 'block';
-            }
-        });
-        document.getElementById('admin-nav').style.display = 'block';
+        // Esconder navegação principal
+        document.getElementById('main-nav-tabs').style.display = 'none';
+        // Mostrar seção admin diretamente
         showSection('admin');
-        if (currentUser.role === 'admin') {
-            loadAdminMeats();
-            loadAdminReservations();
-            loadAdminDates();
-        }
+        loadAdminReservations();
+        loadAdminMeats();
+        loadAdminDates();
     } else {
-        // Se for cliente, mostrar abas normais (esconder Admin)
-        const navTabs = document.querySelectorAll('.nav-tab');
-        navTabs.forEach(tab => {
-            if (tab.textContent.includes('Admin')) {
-                tab.style.display = 'none';
-            } else {
-                tab.style.display = 'block';
-            }
-        });
+        // Se for cliente, mostrar abas normais
+        document.getElementById('main-nav-tabs').style.display = 'flex';
         showSection('catalog');
         loadMeats();
     }
@@ -241,16 +225,21 @@ function showTab(tab) {
 
 function showSection(section, clickedElement = null) {
     document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    
+    // Apenas remover active das abas principais se a navegação principal estiver visível
+    const mainNavTabs = document.getElementById('main-nav-tabs');
+    if (mainNavTabs && mainNavTabs.style.display !== 'none') {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    }
 
     document.getElementById(`${section}-section`).style.display = 'block';
 
     if (clickedElement) {
         clickedElement.classList.add('active');
-    } else {
-        // Se não foi passado elemento, ativar pelo índice
+    } else if (section !== 'admin') {
+        // Se não foi passado elemento e não for admin, ativar pelo índice
         const tabs = document.querySelectorAll('.nav-tab');
-        const sections = ['catalog', 'availability', 'my-reservations', 'admin'];
+        const sections = ['catalog', 'availability', 'my-reservations'];
         const index = sections.indexOf(section);
         if (index >= 0 && tabs[index]) {
             tabs[index].classList.add('active');
@@ -261,10 +250,10 @@ function showSection(section, clickedElement = null) {
     if (section === 'availability') loadAvailability();
     if (section === 'my-reservations') loadMyReservations();
     if (section === 'admin') {
-        showAdminTab('admin-meats');
+        showAdminTab('admin-reservations');
         if (currentUser && currentUser.role === 'admin') {
-            loadAdminMeats();
             loadAdminReservations();
+            loadAdminMeats();
             loadAdminDates();
         }
     }
@@ -280,7 +269,7 @@ function showAdminTab(tab, clickedElement = null) {
     } else {
         // Ativar pelo índice
         const tabs = document.querySelectorAll('.admin-tab');
-        const tabsArray = ['admin-meats', 'admin-reservations', 'admin-dates'];
+        const tabsArray = ['admin-reservations', 'admin-meats', 'admin-dates'];
         const index = tabsArray.indexOf(tab);
         if (index >= 0 && tabs[index]) {
             tabs[index].classList.add('active');

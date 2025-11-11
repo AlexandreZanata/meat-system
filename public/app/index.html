@@ -95,11 +95,10 @@
 
         <!-- Tela Principal (Cliente) -->
         <div id="main-screen" class="screen" style="display: none;">
-            <nav class="nav-tabs">
+            <nav class="nav-tabs" id="main-nav-tabs" style="display: flex;">
                 <button class="nav-tab active" onclick="showSection('catalog', this); return false;">Catálogo</button>
                 <button class="nav-tab" onclick="showSection('availability', this); return false;">Disponibilidade</button>
                 <button class="nav-tab" onclick="showSection('my-reservations', this); return false;">Minhas Reservas</button>
-                <button id="admin-nav" class="nav-tab" onclick="showSection('admin', this); return false;" style="display: none;">Admin</button>
             </nav>
 
             <!-- Seção: Catálogo -->
@@ -138,23 +137,13 @@
 
             <!-- Seção: Admin -->
             <div id="admin-section" class="section" style="display: none;">
-                <h2><i class="bi bi-gear"></i></h2>
                 <div class="admin-tabs">
-                    <button class="admin-tab active" onclick="showAdminTab('admin-meats', this); return false;">Carnes</button>
-                    <button class="admin-tab" onclick="showAdminTab('admin-reservations', this); return false;">Reservas</button>
-                    <button class="admin-tab" onclick="showAdminTab('admin-dates', this); return false;">Datas</button>
+                    <button class="admin-tab active" onclick="showAdminTab('admin-reservations', this); return false;"><i class="bi bi-list-ul"></i> Reservas</button>
+                    <button class="admin-tab" onclick="showAdminTab('admin-meats', this); return false;"><i class="bi bi-database"></i> Carnes</button>
+                    <button class="admin-tab" onclick="showAdminTab('admin-dates', this); return false;"><i class="bi bi-calendar-event"></i> Datas</button>
                 </div>
 
-                <div id="admin-meats" class="admin-content">
-                    <h3><i class="bi bi-database"></i> Gerenciar Carnes</h3>
-                    <div style="padding: 12px; background: white; border-bottom: 1px solid var(--border-color);">
-                        <button onclick="showCreateMeatForm()" style="width: 100%;"><i class="bi bi-plus-circle"></i> Nova Carne</button>
-                    </div>
-                    <div id="admin-meats-list"></div>
-                </div>
-
-                <div id="admin-reservations" class="admin-content" style="display: none;">
-                    <h3><i class="bi bi-list-ul"></i> Todas as Reservas</h3>
+                <div id="admin-reservations" class="admin-content">
                     <div class="filter-bar">
                         <button class="btn-history" onclick="showAdminReservationHistory()"><i class="bi bi-clock-history"></i> Ver Histórico Completo</button>
                         <span class="filter-date-range"><i class="bi bi-calendar3"></i> Últimos 7 dias</span>
@@ -162,10 +151,16 @@
                     <div id="admin-reservations-list"></div>
                 </div>
 
+                <div id="admin-meats" class="admin-content" style="display: none;">
+                    <div class="admin-header">
+                        <button onclick="showCreateMeatForm()" class="btn-primary"><i class="bi bi-plus-circle"></i> Nova Carne</button>
+                    </div>
+                    <div id="admin-meats-list"></div>
+                </div>
+
                 <div id="admin-dates" class="admin-content" style="display: none;">
-                    <h3><i class="bi bi-calendar-event"></i> Gerenciar Datas</h3>
-                    <div style="padding: 12px; background: white; border-bottom: 1px solid var(--border-color);">
-                        <button onclick="showCreateDateForm()" style="width: 100%;"><i class="bi bi-calendar-plus"></i> Nova Data</button>
+                    <div class="admin-header">
+                        <button onclick="showCreateDateForm()" class="btn-primary"><i class="bi bi-calendar-plus"></i> Nova Data</button>
                     </div>
                     <div id="admin-dates-list"></div>
                 </div>
@@ -205,26 +200,27 @@
             <div class="modal-content">
                 <span class="close" onclick="closeModal('admin-meat-modal')">&times;</span>
                 <h2 id="admin-meat-modal-title"><i class="bi bi-plus-circle"></i> Nova Carne</h2>
-                <form onsubmit="handleSaveMeat(event)">
+                <form onsubmit="handleSaveMeat(event)" class="admin-form">
                     <input type="hidden" id="admin-meat-id">
                     <div class="form-group">
-                        <label>Nome *:</label>
-                        <label for="admin-meat-name"></label><input type="text" id="admin-meat-name" required>
+                        <label for="admin-meat-name">Nome *</label>
+                        <input type="text" id="admin-meat-name" required placeholder="Ex: Picanha">
                     </div>
                     <div class="form-group">
-                        <label>Slug (URL amigável) *:</label>
-                        <label for="admin-meat-slug"></label><input type="text" id="admin-meat-slug" required>
+                        <label for="admin-meat-slug">Slug (URL amigável) *</label>
+                        <input type="text" id="admin-meat-slug" required placeholder="Ex: picanha">
+                        <small class="form-hint">Usado na URL do produto</small>
                     </div>
                     <div class="form-group">
-                        <label>Descrição:</label>
-                        <label for="admin-meat-description"></label><textarea id="admin-meat-description"></textarea>
+                        <label for="admin-meat-description">Descrição</label>
+                        <textarea id="admin-meat-description" rows="4" placeholder="Descreva a carne..."></textarea>
                     </div>
                     <div class="form-group">
-                        <label>Preço por kg (R$):</label>
-                        <label for="admin-meat-price"></label><input type="number" step="0.01" id="admin-meat-price">
+                        <label for="admin-meat-price">Preço por kg (R$)</label>
+                        <input type="number" step="0.01" id="admin-meat-price" placeholder="0.00">
                     </div>
                     <div class="form-group">
-                        <label>Imagem da Carne:</label>
+                        <label>Imagem da Carne</label>
                         <div class="image-upload-container">
                             <label class="image-upload-btn">
                                 <input type="file" id="admin-meat-image-file" accept="image/*" onchange="previewImage(this, 'admin-meat-image-preview')">
@@ -232,17 +228,22 @@
                             </label>
                             <img id="admin-meat-image-preview" class="image-preview" style="display: none;" alt="carne" src="">
                             <input type="hidden" id="admin-meat-image-url">
-                            <p style="margin-top: 8px; font-size: 12px; color: var(--text-light);">Ou informe uma URL:</p>
-                            <label for="admin-meat-image"></label><input type="url" id="admin-meat-image" placeholder="https://exemplo.com/imagem.jpg" style="margin-top: 8px;">
+                            <div class="form-divider">
+                                <span>ou</span>
+                            </div>
+                            <input type="url" id="admin-meat-image" placeholder="https://exemplo.com/imagem.jpg" class="form-control">
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="admin-meat-active" checked> Ativa
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="admin-meat-active" checked>
+                            <span>Ativa (visível para clientes)</span>
                         </label>
                     </div>
-                    <button type="submit">Salvar</button>
-                    <button type="button" onclick="closeModal('admin-meat-modal')" style="background: #666; margin-left: 10px;">Cancelar</button>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary"><i class="bi bi-check-lg"></i> Salvar</button>
+                        <button type="button" onclick="closeModal('admin-meat-modal')" class="btn-secondary"><i class="bi bi-x-lg"></i> Cancelar</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -252,23 +253,26 @@
             <div class="modal-content">
                 <span class="close" onclick="closeModal('admin-date-modal')">&times;</span>
                 <h2 id="admin-date-modal-title"><i class="bi bi-calendar-plus"></i> Nova Data</h2>
-                <form onsubmit="handleSaveDate(event)">
+                <form onsubmit="handleSaveDate(event)" class="admin-form">
                     <input type="hidden" id="admin-date-id">
                     <div class="form-group">
-                        <label>Data *:</label>
-                        <label for="admin-date-date"></label><input type="date" id="admin-date-date" required>
+                        <label for="admin-date-date">Data *</label>
+                        <input type="date" id="admin-date-date" required>
                     </div>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="admin-date-open" checked> Aberta para agendamentos
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="admin-date-open" checked>
+                            <span>Aberta para agendamentos</span>
                         </label>
                     </div>
                     <div class="form-group">
-                        <label>Observações:</label>
-                        <label for="admin-date-notes"></label><textarea id="admin-date-notes"></textarea>
+                        <label for="admin-date-notes">Observações</label>
+                        <textarea id="admin-date-notes" rows="4" placeholder="Informações adicionais sobre esta data..."></textarea>
                     </div>
-                    <button type="submit">Salvar</button>
-                    <button type="button" onclick="closeModal('admin-date-modal')" style="background: #666; margin-left: 10px;">Cancelar</button>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary"><i class="bi bi-check-lg"></i> Salvar</button>
+                        <button type="button" onclick="closeModal('admin-date-modal')" class="btn-secondary"><i class="bi bi-x-lg"></i> Cancelar</button>
+                    </div>
                 </form>
             </div>
         </div>

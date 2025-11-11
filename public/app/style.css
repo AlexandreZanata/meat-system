@@ -385,7 +385,7 @@ button:disabled {
 
 .search-bar {
     margin-bottom: 0;
-    padding: 12px;
+    padding: 16px 12px;
     background: white;
     border-bottom: 1px solid var(--border-color);
 }
@@ -1223,8 +1223,68 @@ button:disabled {
     60%, 100% { content: '...'; }
 }
 
+/* Confirm Modal */
+.confirm-modal-content {
+    max-width: 400px;
+}
+
+.confirm-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.confirm-btn-cancel,
+.confirm-btn-confirm {
+    flex: 0 0 auto;
+    min-width: 100px;
+}
+
+/* Back History Button */
+.btn-back-history {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+}
+
+.btn-back-history:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--text-light);
+}
+
+.btn-back-history i {
+    font-size: 1rem;
+}
+
 /* Mobile First - Responsive */
 @media (max-width: 768px) {
+    .confirm-modal-content {
+        max-width: calc(100% - 32px);
+        margin: 20px 16px;
+    }
+
+    .confirm-modal-actions {
+        flex-direction: column-reverse;
+        width: 100%;
+    }
+
+    .confirm-btn-cancel,
+    .confirm-btn-confirm {
+        width: 100%;
+        flex: 1;
+    }
+
     .container {
         padding: 0;
     }
@@ -1287,8 +1347,13 @@ button:disabled {
         padding: 16px 16px 0 16px;
     }
 
+    .btn-back-history {
+        width: 100%;
+        justify-content: center;
+    }
+
     .search-bar {
-        padding: 0 16px 16px 16px;
+        padding: 16px;
     }
 
     .reservation-card {

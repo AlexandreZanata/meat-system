@@ -742,13 +742,29 @@ async function loadMyReservations(showAll = false) {
 function showReservationHistory() {
     // Marcar que estamos no modo histórico
     const filterBar = document.querySelector('#my-reservations-section .filter-bar');
+    const historyBtn = filterBar.querySelector('.btn-history');
+    if (historyBtn) {
+        historyBtn.style.display = 'none';
+    }
+    
+    // Adicionar botão de voltar
+    let backBtn = filterBar.querySelector('.btn-back-history');
+    if (!backBtn) {
+        backBtn = document.createElement('button');
+        backBtn.className = 'btn-back-history';
+        backBtn.innerHTML = '<i class="bi bi-arrow-left"></i> Voltar';
+        backBtn.onclick = showRecentReservations;
+        filterBar.insertBefore(backBtn, filterBar.firstChild);
+    }
+    backBtn.style.display = 'flex';
+    
     if (!filterBar.querySelector('.filter-date-range')) {
         const dateRange = document.createElement('span');
         dateRange.className = 'filter-date-range';
         dateRange.innerHTML = '<i class="bi bi-calendar3"></i> Mostrando todo o histórico';
         filterBar.appendChild(dateRange);
     } else {
-        filterBar.querySelector('.filter-date-range').textContent = '📅 Mostrando todo o histórico';
+        filterBar.querySelector('.filter-date-range').innerHTML = '<i class="bi bi-calendar3"></i> Mostrando todo o histórico';
     }
 
     loadMyReservations(true);
@@ -756,6 +772,16 @@ function showReservationHistory() {
 
 function showRecentReservations() {
     const filterBar = document.querySelector('#my-reservations-section .filter-bar');
+    const backBtn = filterBar.querySelector('.btn-back-history');
+    if (backBtn) {
+        backBtn.style.display = 'none';
+    }
+    
+    const historyBtn = filterBar.querySelector('.btn-history');
+    if (historyBtn) {
+        historyBtn.style.display = 'flex';
+    }
+    
     const dateRange = filterBar.querySelector('.filter-date-range');
     if (dateRange) {
         dateRange.innerHTML = '<i class="bi bi-calendar3"></i> Últimos 7 dias';
@@ -942,7 +968,9 @@ async function handleSaveMeat(event) {
     formData.append('slug', document.getElementById('admin-meat-slug').value);
     formData.append('description', document.getElementById('admin-meat-description').value || '');
     formData.append('price_per_kg', document.getElementById('admin-meat-price').value || '');
-    formData.append('is_active', document.getElementById('admin-meat-active').checked ? '1' : '0');
+    // Enviar is_active como boolean - usar '1' ou '0' que o Laravel converte corretamente
+    const isActive = document.getElementById('admin-meat-active').checked;
+    formData.append('is_active', isActive ? '1' : '0');
 
     // Se tem arquivo de imagem, usar ele. Senão, usar URL se informada
     const imageFile = document.getElementById('admin-meat-image-file').files[0];
@@ -1145,25 +1173,53 @@ async function loadAdminReservations(showAll = false) {
 }
 
 function showAdminReservationHistory() {
-    loadAdminReservations(true);
     const filterBar = document.querySelector('#admin-reservations .filter-bar');
     if (filterBar) {
+        const historyBtn = filterBar.querySelector('.btn-history');
+        if (historyBtn) {
+            historyBtn.style.display = 'none';
+        }
+        
+        // Adicionar botão de voltar
+        let backBtn = filterBar.querySelector('.btn-back-history');
+        if (!backBtn) {
+            backBtn = document.createElement('button');
+            backBtn.className = 'btn-back-history';
+            backBtn.innerHTML = '<i class="bi bi-arrow-left"></i> Voltar';
+            backBtn.onclick = showAdminRecentReservations;
+            filterBar.insertBefore(backBtn, filterBar.firstChild);
+        }
+        backBtn.style.display = 'flex';
+        
         const dateRange = filterBar.querySelector('.filter-date-range');
         if (dateRange) {
             dateRange.innerHTML = '<i class="bi bi-calendar3"></i> Mostrando todo o histórico';
         }
     }
+    
+    loadAdminReservations(true);
 }
 
 function showAdminRecentReservations() {
-    loadAdminReservations(false);
     const filterBar = document.querySelector('#admin-reservations .filter-bar');
     if (filterBar) {
+        const backBtn = filterBar.querySelector('.btn-back-history');
+        if (backBtn) {
+            backBtn.style.display = 'none';
+        }
+        
+        const historyBtn = filterBar.querySelector('.btn-history');
+        if (historyBtn) {
+            historyBtn.style.display = 'flex';
+        }
+        
         const dateRange = filterBar.querySelector('.filter-date-range');
         if (dateRange) {
             dateRange.innerHTML = '<i class="bi bi-calendar3"></i> Últimos 7 dias';
         }
     }
+    
+    loadAdminReservations(false);
 }
 
 async function loadAdminDates() {
@@ -1344,12 +1400,12 @@ function showConfirm(message, onConfirm, onCancel = null) {
     confirmModal.id = 'confirm-modal';
     confirmModal.style.display = 'block';
     confirmModal.innerHTML = `
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content confirm-modal-content">
             <h3 style="margin-bottom: 16px; color: var(--text-primary);">Confirmar ação</h3>
             <p style="margin-bottom: 24px; color: var(--text-secondary); line-height: 1.6;">${message}</p>
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button onclick="closeConfirmModal(false)" class="btn-secondary" style="flex: 0 0 auto;">Cancelar</button>
-                <button onclick="closeConfirmModal(true)" class="btn-primary" style="flex: 0 0 auto; background: var(--primary-color);">Confirmar</button>
+            <div class="confirm-modal-actions">
+                <button onclick="closeConfirmModal(false)" class="btn-secondary confirm-btn-cancel">Cancelar</button>
+                <button onclick="closeConfirmModal(true)" class="btn-primary confirm-btn-confirm">Confirmar</button>
             </div>
         </div>
     `;

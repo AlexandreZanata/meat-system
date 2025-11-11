@@ -89,6 +89,20 @@ class MeatController extends Controller
      */
     public function store(StoreMeatRequest $request): JsonResponse
     {
+        // Convert is_active to boolean before validation if present
+        if ($request->has('is_active')) {
+            $isActive = $request->input('is_active');
+            // Convert to boolean: '1', 'true', 'on', 'yes', true, 1 -> true, otherwise -> false
+            if (is_bool($isActive)) {
+                // Already boolean
+            } else {
+                $isActive = in_array(strtolower(trim((string)$isActive)), ['1', 'true', 'on', 'yes'], true);
+            }
+            $request->merge(['is_active' => $isActive]);
+        } else {
+            $request->merge(['is_active' => true]); // Default to active
+        }
+        
         $data = $request->validated();
         
         // Handle image upload
@@ -153,6 +167,7 @@ class MeatController extends Controller
             $data['slug'] = Str::slug($data['name']);
         }
         
+        // is_active is already converted to boolean before validation
         $meat = Meat::create($data);
 
         return response()->json([
@@ -201,6 +216,18 @@ class MeatController extends Controller
      */
     public function update(UpdateMeatRequest $request, Meat $meat): JsonResponse
     {
+        // Convert is_active to boolean before validation if present
+        if ($request->has('is_active')) {
+            $isActive = $request->input('is_active');
+            // Convert to boolean: '1', 'true', 'on', 'yes', true, 1 -> true, otherwise -> false
+            if (is_bool($isActive)) {
+                // Already boolean
+            } else {
+                $isActive = in_array(strtolower(trim((string)$isActive)), ['1', 'true', 'on', 'yes'], true);
+            }
+            $request->merge(['is_active' => $isActive]);
+        }
+        
         $data = $request->validated();
         
         // Handle image upload
@@ -273,6 +300,7 @@ class MeatController extends Controller
             $data['slug'] = Str::slug($data['name']);
         }
         
+        // is_active is already converted to boolean before validation
         $meat->update($data);
 
         return response()->json([

@@ -296,12 +296,17 @@ async function loadWhatsAppButtonForProfile() {
         return;
     }
     
-    // Não mostrar botão WhatsApp para admin
+    // Não mostrar botão WhatsApp para admin - verificar imediatamente
     const user = window.currentUser || JSON.parse(localStorage.getItem('current_user') || 'null');
     if (user && user.role === 'admin') {
+        btn.classList.remove('show');
         btn.style.display = 'none';
+        btn.style.visibility = 'hidden';
         return;
     }
+    
+    // Garantir que está visível se não for admin
+    btn.style.visibility = 'visible';
     
     try {
         const apiBase = window.API_BASE || '/api/v1';
@@ -319,21 +324,21 @@ async function loadWhatsAppButtonForProfile() {
                 
                 if (whatsappNumber !== '') {
                     window.adminWhatsApp = whatsappNumber;
-                    btn.style.display = 'flex';
+                    btn.classList.add('show');
                     btn.style.cursor = 'pointer';
                     btn.onclick = openWhatsApp;
                 } else {
-                    btn.style.display = 'none';
+                    btn.classList.remove('show');
                 }
             } else {
-                btn.style.display = 'none';
+                btn.classList.remove('show');
             }
         } else {
-            btn.style.display = 'none';
+            btn.classList.remove('show');
         }
     } catch (error) {
         console.error('Erro ao carregar WhatsApp:', error);
-        btn.style.display = 'none';
+        btn.classList.remove('show');
     }
 }
 
@@ -373,6 +378,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!token) {
         window.location.href = '/app/index.html';
         return;
+    }
+    
+    // Esconder botão WhatsApp imediatamente se for admin
+    const btn = document.getElementById('whatsapp-float-btn');
+    if (btn) {
+        const user = window.currentUser || JSON.parse(localStorage.getItem('current_user') || 'null');
+        if (user && user.role === 'admin') {
+            btn.classList.remove('show');
+            btn.style.display = 'none';
+            btn.style.visibility = 'hidden';
+        }
     }
     
     // Carregar perfil

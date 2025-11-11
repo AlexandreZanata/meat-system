@@ -36,14 +36,18 @@
         </header>
 
         <!-- WhatsApp Float Button -->
-        <div id="whatsapp-float-btn" class="whatsapp-float-btn" style="display: none; z-index: 9999;" onclick="openWhatsApp()" title="Fale conosco no WhatsApp">
+        <div id="whatsapp-float-btn" class="whatsapp-float-btn" onclick="openWhatsApp()" title="Fale conosco no WhatsApp">
             <i class="bi bi-whatsapp"></i>
         </div>
 
         <!-- Tela de Login/Registro -->
         <div id="auth-screen" class="screen" style="display: none; visibility: hidden;">
-            <div class="auth-container">
-                <div class="tabs">
+            <div class="auth-container-wrapper">
+                <button onclick="showMainScreenWithoutAuth(); showSection('catalog');" class="btn-back-auth" title="Voltar ao catálogo">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </button>
+                <div class="auth-container">
+                    <div class="tabs">
                     <button class="tab active" onclick="showTab('login'); return false;">Login</button>
                     <button class="tab" onclick="showTab('register'); return false;">Registrar</button>
                 </div>
@@ -96,6 +100,7 @@
                         </div>
                         <button type="submit">Registrar</button>
                     </form>
+                </div>
                 </div>
             </div>
         </div>

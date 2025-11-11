@@ -8,8 +8,116 @@ const API_BASE = window.API_BASE;
 let authToken = window.authToken;
 let currentUser = window.currentUser;
 
+// ========== SISTEMA DE CACHE ==========
+const CACHE_CONFIG = {
+    meats: { ttl: 5 * 60 * 1000 }, // 5 minutos
+    availability: { ttl: 2 * 60 * 1000 }, // 2 minutos
+    meatDetails: { ttl: 5 * 60 * 1000 }, // 5 minutos
+    meatItems: { ttl: 2 * 60 * 1000 }, // 2 minutos
+    reservations: { ttl: 1 * 60 * 1000 }, // 1 minuto
+    adminData: { ttl: 1 * 60 * 1000 }, // 1 minuto
+};
+
+function getCacheKey(endpoint, params = {}) {
+    const paramStr = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&');
+    return `cache_${endpoint}${paramStr ? '_' + paramStr : ''}`;
+}
+
+function getCachedData(key) {
+    try {
+        const cached = localStorage.getItem(key);
+        if (!cached) return null;
+        
+        const { data, timestamp, ttl } = JSON.parse(cached);
+        const now = Date.now();
+        
+        if (now - timestamp > ttl) {
+            localStorage.removeItem(key);
+            return null;
+        }
+        
+        return data;
+    } catch (e) {
+        console.error('Erro ao ler cache:', e);
+        return null;
+    }
+}
+
+function setCachedData(key, data, ttl) {
+    try {
+        const cacheItem = {
+            data,
+            timestamp: Date.now(),
+            ttl
+        };
+        localStorage.setItem(key, JSON.stringify(cacheItem));
+    } catch (e) {
+        console.error('Erro ao salvar cache:', e);
+        // Se o localStorage estiver cheio, limpar caches antigos
+        if (e.name === 'QuotaExceededError') {
+            clearOldCache();
+            try {
+                localStorage.setItem(key, JSON.stringify(cacheItem));
+            } catch (e2) {
+                console.error('Erro ao salvar cache após limpeza:', e2);
+            }
+        }
+    }
+}
+
+function clearOldCache() {
+    try {
+        const keys = Object.keys(localStorage);
+        const now = Date.now();
+        keys.forEach(key => {
+            if (key.startsWith('cache_')) {
+                try {
+                    const cached = JSON.parse(localStorage.getItem(key));
+                    if (now - cached.timestamp > cached.ttl) {
+                        localStorage.removeItem(key);
+                    }
+                } catch (e) {
+                    localStorage.removeItem(key);
+                }
+            }
+        });
+    } catch (e) {
+        console.error('Erro ao limpar cache antigo:', e);
+    }
+}
+
+function invalidateCache(pattern) {
+    try {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+            if (key.startsWith('cache_') && key.includes(pattern)) {
+                localStorage.removeItem(key);
+            }
+        });
+    } catch (e) {
+        console.error('Erro ao invalidar cache:', e);
+    }
+}
+
+// Limpar cache antigo ao iniciar
+clearOldCache();
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
+    // Esconder botão WhatsApp imediatamente se for admin
+    const btn = document.getElementById('whatsapp-float-btn');
+    if (btn) {
+        const user = currentUser || window.currentUser || JSON.parse(localStorage.getItem('current_user') || 'null');
+        if (user && user.role === 'admin') {
+            btn.classList.remove('show');
+            btn.style.display = 'none';
+            btn.style.visibility = 'hidden';
+        }
+    }
+    
+    // Atualizar ícone do botão de perfil baseado no status de login
+    updateProfileButtonIcon();
+    
     // Verificar se estamos na página de perfil (não tem auth-screen)
     const authScreen = document.getElementById('auth-screen');
     const mainScreen = document.getElementById('main-screen');
@@ -194,6 +302,11 @@ function logout() {
     currentUser = null;
     localStorage.removeItem('auth_token');
     localStorage.removeItem('current_user');
+    
+    // Limpar cache de dados do usuário ao fazer logout
+    invalidateCache('reservations');
+    invalidateCache('adminData');
+    
     showAuthScreen();
 }
 
@@ -210,6 +323,8 @@ function showAuthScreen() {
     const guestInfo = document.getElementById('guest-info');
     if (userInfo) userInfo.style.display = 'none';
     if (guestInfo) guestInfo.style.display = 'none';
+    // Atualizar ícone do botão de perfil
+    updateProfileButtonIcon();
 }
 
 function showMainScreenWithoutAuth() {
@@ -231,6 +346,8 @@ function showMainScreenWithoutAuth() {
     loadMeats();
     // Carregar botão WhatsApp
     loadWhatsAppButton();
+    // Atualizar ícone do botão de perfil
+    updateProfileButtonIcon();
 }
 
 function showMainScreen() {
@@ -274,6 +391,8 @@ function showMainScreen() {
     
     // Carregar botão WhatsApp
     loadWhatsAppButton();
+    // Atualizar ícone do botão de perfil
+    updateProfileButtonIcon();
 }
 
 async function loadWhatsAppButton() {
@@ -282,9 +401,12 @@ async function loadWhatsAppButton() {
         return;
     }
     
-    // Não mostrar botão WhatsApp para admin
-    if (currentUser && currentUser.role === 'admin') {
+    // Não mostrar botão WhatsApp para admin - verificar imediatamente
+    const user = currentUser || window.currentUser || JSON.parse(localStorage.getItem('current_user') || 'null');
+    if (user && user.role === 'admin') {
+        btn.classList.remove('show');
         btn.style.display = 'none';
+        btn.style.visibility = 'hidden';
         return;
     }
     
@@ -305,21 +427,21 @@ async function loadWhatsAppButton() {
                 
                 if (whatsappNumber !== '') {
                     window.adminWhatsApp = whatsappNumber;
-                    btn.style.display = 'flex';
+                    btn.classList.add('show');
                     btn.style.cursor = 'pointer';
                     btn.onclick = openWhatsApp;
                 } else {
-                    btn.style.display = 'none';
+                    btn.classList.remove('show');
                 }
             } else {
-                btn.style.display = 'none';
+                btn.classList.remove('show');
             }
         } else {
-            btn.style.display = 'none';
+            btn.classList.remove('show');
         }
     } catch (error) {
         console.error('Erro ao carregar WhatsApp:', error);
-        btn.style.display = 'none';
+        btn.classList.remove('show');
     }
 }
 
@@ -347,10 +469,38 @@ function openWhatsApp() {
 
 function openProfile() {
     if (!authToken || !currentUser) {
-        showAuthScreen();
+        // Não fazer nada se não estiver logado - o botão já está desabilitado visualmente
         return;
     }
     window.location.href = '/app/profile.html';
+}
+
+// Atualizar ícone do botão de perfil baseado no status de login
+function updateProfileButtonIcon() {
+    const profileBtn = document.querySelector('.btn-profile');
+    if (!profileBtn) return;
+    
+    const user = currentUser || window.currentUser || JSON.parse(localStorage.getItem('current_user') || 'null');
+    const icon = profileBtn.querySelector('i');
+    
+    if (!icon) return;
+    
+    if (user && user.id) {
+        // Usuário logado - mostrar ícone de perfil
+        icon.className = 'bi bi-person-circle';
+        icon.innerHTML = ''; // Limpar SVG se houver
+        profileBtn.title = 'Meu Perfil';
+        profileBtn.style.cursor = 'pointer';
+        profileBtn.style.opacity = '1';
+    } else {
+        // Usuário não logado - mostrar ícone de carne (imagem PNG)
+        // Para ajustar o tamanho, altere width e height (ex: 20px, 28px, 32px)
+        icon.className = '';
+        icon.innerHTML = `<img src="/app/icons8-meat-50.png" alt="Carne" style="width: 34px; height: 34px; filter: brightness(0) invert(1); object-fit: contain;">`;
+        profileBtn.title = 'Catálogo de Carnes';
+        profileBtn.style.cursor = 'default';
+        profileBtn.style.opacity = '1';
+    }
 }
 
 function showTab(tab) {
@@ -467,8 +617,45 @@ function normalizeImageUrl(imageUrl) {
     return normalized;
 }
 
-// Funções de API
+// Funções de API com Cache
 async function apiRequest(endpoint, options = {}) {
+    // Determinar tipo de cache baseado no endpoint
+    let cacheType = null;
+    let cacheKey = null;
+    let useCache = options.method === 'GET' || !options.method;
+    
+    if (useCache) {
+        if (endpoint.startsWith('/meats') && !endpoint.includes('/items')) {
+            if (endpoint.match(/\/meats\/\d+$/)) {
+                cacheType = 'meatDetails';
+            } else {
+                cacheType = 'meats';
+            }
+        } else if (endpoint.includes('/availability/dates')) {
+            cacheType = 'availability';
+        } else if (endpoint.includes('/items')) {
+            cacheType = 'meatItems';
+        } else if (endpoint.includes('/reservations')) {
+            cacheType = 'reservations';
+        } else if (endpoint.includes('/admin/')) {
+            cacheType = 'adminData';
+        }
+        
+        if (cacheType) {
+            const params = new URLSearchParams(endpoint.split('?')[1] || '');
+            const paramObj = {};
+            params.forEach((v, k) => paramObj[k] = v);
+            cacheKey = getCacheKey(endpoint.split('?')[0], paramObj);
+            
+            // Tentar obter do cache
+            const cached = getCachedData(cacheKey);
+            if (cached !== null) {
+                console.log('📦 Cache hit:', endpoint);
+                return cached;
+            }
+        }
+    }
+    
     const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -498,6 +685,11 @@ async function apiRequest(endpoint, options = {}) {
             throw error;
         }
 
+        // Salvar no cache se for GET e tiver cacheType
+        if (useCache && cacheType && cacheKey && CACHE_CONFIG[cacheType]) {
+            setCachedData(cacheKey, data, CACHE_CONFIG[cacheType].ttl);
+        }
+
         return data;
     } else {
         // Se não for JSON, ler como texto e lançar erro
@@ -513,53 +705,69 @@ async function apiRequest(endpoint, options = {}) {
 // Catálogo de Carnes
 async function loadMeats() {
     const container = document.getElementById('meats-list');
-    container.innerHTML = '<div class="loading">Carregando...</div>';
+    
+    // Tentar carregar do cache primeiro para mostrar dados imediatamente
+    const cacheKey = getCacheKey('/meats');
+    const cached = getCachedData(cacheKey);
+    if (cached && cached.data) {
+        renderMeats(cached.data);
+    } else {
+        container.innerHTML = '<div class="loading">Carregando...</div>';
+    }
 
     try {
         const data = await apiRequest('/meats');
         console.log('📦 Dados recebidos (catalog meats):', data);
-
+        
+        // Renderizar novamente com dados atualizados
         if (data.data) {
-            container.innerHTML = '';
-            data.data.forEach(meat => {
-                const card = document.createElement('div');
-                card.className = 'meat-card';
-                card.onclick = () => showMeatDetails(meat.id);
-
-                const imageUrl = normalizeImageUrl(meat.image_url);
-
-                // Debug: log da URL da imagem
-                console.log('🥩 Processando carne:', meat.name, 'Image URL original:', meat.image_url, 'Normalized:', imageUrl);
-
-                const imageHtml = imageUrl
-                    ? `<img src="${imageUrl}" alt="${meat.name}" class="meat-card-image" loading="lazy" onerror="console.error('Erro ao carregar imagem:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">`
-                    : '';
-
-                const placeholderHtml = `<div class="meat-card-image-placeholder" style="${imageUrl ? 'display:none;' : ''}"><i class="bi bi-image" style="font-size: 2rem;"></i> Sem imagem</div>`;
-
-                card.innerHTML = `
-                    ${imageHtml}
-                    ${placeholderHtml}
-                    <div class="meat-card-content">
-                        <h3>${meat.name}</h3>
-                        ${meat.description ? `<p class="description">${meat.description}</p>` : ''}
-                        ${meat.price_per_kg ? `
-                            <div class="price">
-                                R$ ${parseFloat(meat.price_per_kg).toFixed(2)}
-                                <span class="price-label">/kg</span>
-                            </div>
-                        ` : ''}
-                        <div class="${meat.available_count > 0 ? 'available' : 'unavailable'}">
-                            ${meat.available_count > 0 ? `<span><i class="bi bi-check-circle"></i> ${meat.available_count} peças disponíveis</span>` : '<span><i class="bi bi-x-circle"></i> Indisponível</span>'}
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
+            renderMeats(data.data);
         }
     } catch (error) {
-        container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar as carnes. Por favor, tente novamente.</div>';
+        // Se falhar e não tiver cache, mostrar erro
+        if (!cached) {
+            container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar as carnes. Por favor, tente novamente.</div>';
+        }
     }
+}
+
+function renderMeats(meats) {
+    const container = document.getElementById('meats-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    meats.forEach(meat => {
+        const card = document.createElement('div');
+        card.className = 'meat-card';
+        card.onclick = () => showMeatDetails(meat.id);
+
+        const imageUrl = normalizeImageUrl(meat.image_url);
+
+        const imageHtml = imageUrl
+            ? `<img src="${imageUrl}" alt="${meat.name}" class="meat-card-image" loading="lazy" onerror="console.error('Erro ao carregar imagem:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+            : '';
+
+        const placeholderHtml = `<div class="meat-card-image-placeholder" style="${imageUrl ? 'display:none;' : ''}"><i class="bi bi-image" style="font-size: 2rem;"></i> Sem imagem</div>`;
+
+        card.innerHTML = `
+            ${imageHtml}
+            ${placeholderHtml}
+            <div class="meat-card-content">
+                <h3>${meat.name}</h3>
+                ${meat.description ? `<p class="description">${meat.description}</p>` : ''}
+                ${meat.price_per_kg ? `
+                    <div class="price">
+                        R$ ${parseFloat(meat.price_per_kg).toFixed(2)}
+                        <span class="price-label">/kg</span>
+                    </div>
+                ` : ''}
+                <div class="${meat.available_count > 0 ? 'available' : 'unavailable'}">
+                    ${meat.available_count > 0 ? `<span><i class="bi bi-check-circle"></i> ${meat.available_count} peças disponíveis</span>` : '<span><i class="bi bi-x-circle"></i> Indisponível</span>'}
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
 }
 
 async function searchMeats() {
@@ -689,52 +897,69 @@ async function loadAvailability() {
     const container = document.getElementById('dates-list');
     if (!container) return;
     
-    container.innerHTML = '<div class="loading">Carregando...</div>';
+    // Tentar carregar do cache primeiro
+    const cacheKey = getCacheKey('/availability/dates');
+    let cached = getCachedData(cacheKey);
+    if (cached && cached.data) {
+        renderAvailability(cached.data);
+    } else {
+        cached = null;
+        container.innerHTML = '<div class="loading">Carregando...</div>';
+    }
 
     try {
-        const response = await fetch(`${API_BASE}/availability/dates`);
-        const result = await response.json();
+        const result = await apiRequest('/availability/dates');
         
         if (result.data && Array.isArray(result.data)) {
-            container.innerHTML = '';
-            
-            if (result.data.length === 0) {
-                container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhuma data disponível</p>';
-                return;
-            }
-            
-            const today = new Date().toISOString().split('T')[0];
-            let hasValidDates = false;
-            
-            result.data.forEach(date => {
-                // Mostrar apenas datas abertas e futuras (o backend já filtra, mas verificamos novamente)
-                if (date.is_open && date.date >= today) {
-                    hasValidDates = true;
-                    const dateCard = document.createElement('div');
-                    dateCard.className = 'date-card';
-                    dateCard.style.cssText = 'padding: 10px 14px; margin-bottom: 6px; border: 1px solid var(--border-color); border-radius: 6px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.05);';
-                    dateCard.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                            <div style="flex: 1; min-width: 0;">
-                                <h3 style="margin: 0 0 2px 0; font-size: 0.95rem; font-weight: 600; color: var(--text-primary); line-height: 1.3;">${formatDate(date.date)}</h3>
-                                <p style="margin: 0; font-size: 0.8rem; color: var(--success-color); font-weight: 500; display: flex; align-items: center; gap: 4px;"><i class="bi bi-check-circle" style="font-size: 0.75rem;"></i> Disponível</p>
-                            </div>
-                            ${date.notes ? `<p style="margin: 0; font-size: 0.75rem; color: var(--text-secondary); flex: 1; text-align: right; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${date.notes}</p>` : ''}
-                        </div>
-                    `;
-                    container.appendChild(dateCard);
-                }
-            });
-            
-            if (!hasValidDates) {
-                container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhuma data disponível</p>';
-            }
+            renderAvailability(result.data);
         } else {
             container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhuma data disponível</p>';
         }
     } catch (error) {
         console.error('Error loading availability:', error);
-        container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar a disponibilidade. Por favor, tente novamente.</div>';
+        // Se falhar e não tiver cache, mostrar erro
+        if (!cached) {
+            container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar a disponibilidade. Por favor, tente novamente.</div>';
+        }
+    }
+}
+
+function renderAvailability(dates) {
+    const container = document.getElementById('dates-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (dates.length === 0) {
+        container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhuma data disponível</p>';
+        return;
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    let hasValidDates = false;
+    
+    dates.forEach(date => {
+        // Mostrar apenas datas abertas e futuras (o backend já filtra, mas verificamos novamente)
+        if (date.is_open && date.date >= today) {
+            hasValidDates = true;
+            const dateCard = document.createElement('div');
+            dateCard.className = 'date-card';
+            dateCard.style.cssText = 'padding: 10px 14px; margin-bottom: 6px; border: 1px solid var(--border-color); border-radius: 6px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.05);';
+            dateCard.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <div style="flex: 1; min-width: 0;">
+                        <h3 style="margin: 0 0 2px 0; font-size: 0.95rem; font-weight: 600; color: var(--text-primary); line-height: 1.3;">${formatDate(date.date)}</h3>
+                        <p style="margin: 0; font-size: 0.8rem; color: var(--success-color); font-weight: 500; display: flex; align-items: center; gap: 4px;"><i class="bi bi-check-circle" style="font-size: 0.75rem;"></i> Disponível</p>
+                    </div>
+                    ${date.notes ? `<p style="margin: 0; font-size: 0.75rem; color: var(--text-secondary); flex: 1; text-align: right; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${date.notes}</p>` : ''}
+                </div>
+            `;
+            container.appendChild(dateCard);
+        }
+    });
+    
+    if (!hasValidDates) {
+        container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhuma data disponível</p>';
     }
 }
 
@@ -754,6 +979,15 @@ function openReservationModal(meatItemId) {
         // Mostrar tela de registro diretamente
         showAuthScreen();
         showTab('register');
+        
+        // Scroll para o topo da página e do formulário de registro
+        setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const registerForm = document.getElementById('register-form');
+            if (registerForm) {
+                registerForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 150);
         return;
     }
 
@@ -849,6 +1083,10 @@ async function handleCreateReservation(event) {
             document.getElementById('reservation-notes').value = '';
             document.getElementById('reservation-date').value = '';
             document.getElementById('reservation-meat-item-id').value = '';
+            // Invalidar caches relacionados
+            invalidateCache('reservations');
+            invalidateCache('meatItems');
+            invalidateCache('meats');
             showSection('my-reservations');
             loadMyReservations();
         } else {
@@ -1000,7 +1238,11 @@ async function cancelReservation(reservationId) {
         const data = await response.json();
 
         if (response.ok) {
-                    showMessage('Reserva cancelada com sucesso.', 'success');
+            showMessage('Reserva cancelada com sucesso.', 'success');
+            // Invalidar cache de reservas e itens
+            invalidateCache('reservations');
+            invalidateCache('meatItems');
+            invalidateCache('meats');
             // Recarregar reservas sem reload da página
             const filterBar = document.querySelector('#my-reservations-section .filter-bar');
                     const isShowingHistory = filterBar?.querySelector('.filter-date-range')?.textContent.includes('todo o histórico');

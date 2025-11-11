@@ -43,7 +43,6 @@ async function handleLogin(event) {
                 currentUser = data.data;
                 localStorage.setItem('auth_token', authToken);
                 localStorage.setItem('current_user', JSON.stringify(currentUser));
-                showMessage('Login realizado com sucesso.', 'success');
                 showMainScreen();
 
                 // Se havia uma reserva pendente, abrir modal
@@ -253,6 +252,7 @@ function showSection(section, clickedElement = null) {
         showAdminTab('admin-reservations');
         if (currentUser && currentUser.role === 'admin') {
             loadAdminReservations();
+            loadAdminStock();
             loadAdminMeats();
             loadAdminDates();
         }
@@ -269,11 +269,17 @@ function showAdminTab(tab, clickedElement = null) {
     } else {
         // Ativar pelo índice
         const tabs = document.querySelectorAll('.admin-tab');
-        const tabsArray = ['admin-reservations', 'admin-meats', 'admin-dates'];
+        const tabsArray = ['admin-reservations', 'admin-stock', 'admin-meats', 'admin-dates'];
         const index = tabsArray.indexOf(tab);
         if (index >= 0 && tabs[index]) {
             tabs[index].classList.add('active');
         }
+    }
+
+    // Carregar dados quando a aba é selecionada
+    if (tab === 'admin-stock') {
+        loadStockMeatsFilter();
+        loadAdminStock();
     }
 }
 
@@ -1297,6 +1303,243 @@ async function deleteDate(dateId) {
             }
         }
     );
+}
+
+// Estoque
+async function loadAdminStock() {
+    const container = document.getElementById('admin-stock-list');
+    container.innerHTML = '<div class="loading">Carregando estoque...</div>';
+
+    try {
+        const meatId = document.getElementById('filter-stock-meat')?.value || '';
+        const status = document.getElementById('filter-stock-status')?.value || '';
+        
+        let url = '/admin/meat-items';
+        const params = new URLSearchParams();
+        if (meatId) params.append('meat_id', meatId);
+        if (status) params.append('status', status);
+        if (params.toString()) url += '?' + params.toString();
+
+        const data = await apiRequest(url);
+        if (data.data) {
+            container.innerHTML = '';
+            if (data.data.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhum item no estoque</p>';
+                return;
+            }
+            data.data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'stock-item-card';
+                card.innerHTML = `
+                    <div class="stock-item-info">
+                        <h3>${item.code}</h3>
+                        <p><strong>Tipo:</strong> ${item.meat?.name || 'N/A'}</p>
+                        ${item.weight_kg ? `<p><strong>Peso:</strong> ${parseFloat(item.weight_kg).toFixed(3)} kg</p>` : '<p><strong>Peso:</strong> Não informado</p>'}
+                        ${item.fixed_price ? `<p><strong>Preço:</strong> R$ ${parseFloat(item.fixed_price).toFixed(2)}</p>` : '<p><strong>Preço:</strong> Não informado</p>'}
+                        <p><strong>Status:</strong> <span class="stock-status status-${item.status}">${getStockStatusText(item.status)}</span></p>
+                    </div>
+                    <div class="stock-item-actions">
+                        <button onclick="editStockItem('${item.id}')" class="btn-edit"><i class="bi bi-pencil"></i> Editar</button>
+                        ${item.status === 'available' || item.status === 'canceled' ? `<button onclick="deleteStockItem('${item.id}')" class="btn-delete"><i class="bi bi-trash"></i> Excluir</button>` : ''}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+    } catch (error) {
+        container.innerHTML = '<div class="error" style="text-align: center; padding: 40px; color: var(--danger-color);">Não foi possível carregar o estoque. Por favor, tente novamente.</div>';
+    }
+}
+
+async function loadStockMeatsFilter() {
+    const select = document.getElementById('filter-stock-meat');
+    const modalSelect = document.getElementById('admin-stock-meat');
+    
+    if (!select || !modalSelect) return;
+
+    try {
+        const data = await apiRequest('/admin/meats');
+        if (data.data) {
+            // Limpar opções existentes (exceto a primeira)
+            select.innerHTML = '<option value="">Todas as carnes</option>';
+            modalSelect.innerHTML = '<option value="">Selecione o tipo de carne</option>';
+            
+            data.data.forEach(meat => {
+                const option1 = document.createElement('option');
+                option1.value = meat.id;
+                option1.textContent = meat.name;
+                select.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = meat.id;
+                option2.textContent = meat.name;
+                modalSelect.appendChild(option2);
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao carregar carnes para filtro:', error);
+    }
+}
+
+function showCreateStockForm() {
+    loadStockMeatsFilter();
+    document.getElementById('admin-stock-quantity').value = '1';
+    document.getElementById('admin-stock-weight').value = '';
+    document.getElementById('admin-stock-price').value = '';
+    document.getElementById('admin-stock-meat').value = '';
+    document.getElementById('admin-stock-modal').style.display = 'block';
+}
+
+async function handleSaveStock(event) {
+    event.preventDefault();
+    const meatId = document.getElementById('admin-stock-meat').value;
+    const quantity = parseInt(document.getElementById('admin-stock-quantity').value);
+    const weight = document.getElementById('admin-stock-weight').value.trim();
+    const price = document.getElementById('admin-stock-price').value.trim();
+
+    if (!meatId || !quantity) {
+        showMessage('Preencha todos os campos obrigatórios.', 'error');
+        return;
+    }
+
+    try {
+        const requestData = {
+            meat_id: meatId,
+            quantity: quantity,
+        };
+
+        // Se weight ou price foram fornecidos, adicionar como valores únicos (o backend aplica a todos)
+        if (weight) {
+            const weightNum = parseFloat(weight);
+            if (!isNaN(weightNum) && weightNum > 0) {
+                requestData.weight_kg = weightNum;
+            }
+        }
+        if (price) {
+            const priceNum = parseFloat(price);
+            if (!isNaN(priceNum) && priceNum > 0) {
+                requestData.fixed_price = priceNum;
+            }
+        }
+
+        const response = await fetch(`${API_BASE}/admin/meat-items/bulk`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMessage(data.message || `${quantity} peça(s) cadastrada(s) com sucesso.`, 'success');
+            closeModal('admin-stock-modal');
+            loadAdminStock();
+        } else {
+            showMessage(data.message || 'Não foi possível cadastrar o estoque. Por favor, tente novamente.', 'error');
+        }
+    } catch (error) {
+        showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+    }
+}
+
+async function editStockItem(itemId) {
+    try {
+        const data = await apiRequest(`/admin/meat-items/${itemId}`);
+        if (data.data) {
+            populateEditStockItemModal(data.data);
+        } else {
+            showMessage('Item não encontrado.', 'error');
+        }
+    } catch (error) {
+        showMessage('Não foi possível carregar os dados do item. Por favor, tente novamente.', 'error');
+    }
+}
+
+function populateEditStockItemModal(item) {
+    document.getElementById('admin-stock-item-id').value = item.id;
+    document.getElementById('admin-stock-item-code').value = item.code;
+    document.getElementById('admin-stock-item-meat').value = item.meat?.name || 'N/A';
+    document.getElementById('admin-stock-item-weight').value = item.weight_kg || '';
+    document.getElementById('admin-stock-item-price').value = item.fixed_price || '';
+    document.getElementById('admin-stock-item-status').value = item.status;
+    document.getElementById('admin-stock-item-modal').style.display = 'block';
+}
+
+async function handleUpdateStockItem(event) {
+    event.preventDefault();
+    const itemId = document.getElementById('admin-stock-item-id').value;
+    const weight = document.getElementById('admin-stock-item-weight').value;
+    const price = document.getElementById('admin-stock-item-price').value;
+    const status = document.getElementById('admin-stock-item-status').value;
+
+    try {
+        const requestData = {
+            weight_kg: weight ? parseFloat(weight) : null,
+            fixed_price: price ? parseFloat(price) : null,
+            status: status,
+        };
+
+        const response = await fetch(`${API_BASE}/admin/meat-items/${itemId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMessage('Item atualizado com sucesso.', 'success');
+            closeModal('admin-stock-item-modal');
+            loadAdminStock();
+        } else {
+            showMessage(data.message || 'Não foi possível atualizar o item. Por favor, tente novamente.', 'error');
+        }
+    } catch (error) {
+        showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+    }
+}
+
+async function deleteStockItem(itemId) {
+    showConfirm(
+        'Tem certeza que deseja excluir este item do estoque? Esta ação não pode ser desfeita.',
+        async () => {
+            try {
+                const response = await fetch(`${API_BASE}/admin/meat-items/${itemId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(data.message || 'Item excluído com sucesso.', 'success');
+                    loadAdminStock();
+                } else {
+                    showMessage(data.message || 'Não foi possível excluir o item. Por favor, tente novamente.', 'error');
+                }
+            } catch (error) {
+                showMessage('Erro de conexão com o servidor. Verifique sua internet e tente novamente.', 'error');
+            }
+        }
+    );
+}
+
+function getStockStatusText(status) {
+    const statusMap = {
+        'available': 'Disponível',
+        'reserved': 'Reservado',
+        'picked_up': 'Retirado',
+        'canceled': 'Cancelado'
+    };
+    return statusMap[status] || status;
 }
 
 async function fulfillReservation(reservationId) {

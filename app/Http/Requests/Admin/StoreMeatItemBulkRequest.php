@@ -13,15 +13,34 @@ class StoreMeatItemBulkRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
             'meat_id' => ['required', 'uuid', 'exists:meats,id'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100'],
-            'weight_kg' => ['nullable', 'array'],
-            'weight_kg.*' => ['nullable', 'numeric', 'min:0', 'max:999.999'],
-            'fixed_price' => ['nullable', 'array'],
-            'fixed_price.*' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
         ];
+
+        // Validate weight_kg - can be single value or array
+        if ($this->has('weight_kg')) {
+            if (is_array($this->weight_kg)) {
+                $rules['weight_kg'] = ['nullable', 'array'];
+                $rules['weight_kg.*'] = ['nullable', 'numeric', 'min:0', 'max:999.999'];
+            } else {
+                $rules['weight_kg'] = ['nullable', 'numeric', 'min:0', 'max:999.999'];
+            }
+        }
+
+        // Validate fixed_price - can be single value or array
+        if ($this->has('fixed_price')) {
+            if (is_array($this->fixed_price)) {
+                $rules['fixed_price'] = ['nullable', 'array'];
+                $rules['fixed_price.*'] = ['nullable', 'numeric', 'min:0', 'max:999999.99'];
+            } else {
+                $rules['fixed_price'] = ['nullable', 'numeric', 'min:0', 'max:999999.99'];
+            }
+        }
+
+        return $rules;
     }
+
 
     public function messages(): array
     {

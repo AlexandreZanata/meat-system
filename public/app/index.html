@@ -136,6 +136,7 @@
             <div id="admin-section" class="section" style="display: none;">
                 <div class="admin-tabs">
                     <button class="admin-tab active" onclick="showAdminTab('admin-reservations', this); return false;"><i class="bi bi-list-ul"></i> Reservas</button>
+                    <button class="admin-tab" onclick="showAdminTab('admin-stock', this); return false;"><i class="bi bi-box-seam"></i> Estoque</button>
                     <button class="admin-tab" onclick="showAdminTab('admin-meats', this); return false;"><i class="bi bi-database"></i> Carnes</button>
                     <button class="admin-tab" onclick="showAdminTab('admin-dates', this); return false;"><i class="bi bi-calendar-event"></i> Datas</button>
                 </div>
@@ -146,6 +147,25 @@
                         <span class="filter-date-range"><i class="bi bi-calendar3"></i> Últimos 7 dias</span>
                     </div>
                     <div id="admin-reservations-list"></div>
+                </div>
+
+                <div id="admin-stock" class="admin-content" style="display: none;">
+                    <div class="admin-header">
+                        <button onclick="showCreateStockForm()" class="btn-primary"><i class="bi bi-plus-circle"></i> Cadastrar Estoque</button>
+                    </div>
+                    <div class="filter-bar">
+                        <select id="filter-stock-meat" onchange="loadAdminStock()">
+                            <option value="">Todas as carnes</option>
+                        </select>
+                        <select id="filter-stock-status" onchange="loadAdminStock()">
+                            <option value="">Todos os status</option>
+                            <option value="available">Disponível</option>
+                            <option value="reserved">Reservado</option>
+                            <option value="picked_up">Retirado</option>
+                            <option value="canceled">Cancelado</option>
+                        </select>
+                    </div>
+                    <div id="admin-stock-list"></div>
                 </div>
 
                 <div id="admin-meats" class="admin-content" style="display: none;">
@@ -269,6 +289,81 @@
                     <div class="form-actions">
                         <button type="submit" class="btn-primary"><i class="bi bi-check-lg"></i> Salvar</button>
                         <button type="button" onclick="closeModal('admin-date-modal')" class="btn-secondary"><i class="bi bi-x-lg"></i> Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Admin: Cadastrar Estoque -->
+        <div id="admin-stock-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('admin-stock-modal')">&times;</span>
+                <h2 id="admin-stock-modal-title"><i class="bi bi-box-seam"></i> Cadastrar Estoque</h2>
+                <form onsubmit="handleSaveStock(event)" class="admin-form">
+                    <div class="form-group">
+                        <label for="admin-stock-meat">Tipo de Carne *</label>
+                        <select id="admin-stock-meat" required>
+                            <option value="">Selecione o tipo de carne</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-stock-quantity">Quantidade *</label>
+                        <input type="number" id="admin-stock-quantity" min="1" max="100" value="1" required placeholder="Quantidade de peças">
+                        <small class="form-hint">Máximo de 100 peças por vez</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-stock-weight">Peso (kg) - Opcional</label>
+                        <input type="number" id="admin-stock-weight" step="0.001" min="0" placeholder="0.000">
+                        <small class="form-hint">Peso por peça (opcional). Se não informado, poderá ser adicionado depois.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-stock-price">Preço Fixo (R$) - Opcional</label>
+                        <input type="number" id="admin-stock-price" step="0.01" min="0" placeholder="0.00">
+                        <small class="form-hint">Preço fixo por peça (opcional). Se não informado, será calculado pelo peso e preço por kg da carne.</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary"><i class="bi bi-check-lg"></i> Cadastrar</button>
+                        <button type="button" onclick="closeModal('admin-stock-modal')" class="btn-secondary"><i class="bi bi-x-lg"></i> Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Admin: Editar Item do Estoque -->
+        <div id="admin-stock-item-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('admin-stock-item-modal')">&times;</span>
+                <h2 id="admin-stock-item-modal-title"><i class="bi bi-pencil"></i> Editar Item</h2>
+                <form onsubmit="handleUpdateStockItem(event)" class="admin-form">
+                    <input type="hidden" id="admin-stock-item-id">
+                    <div class="form-group">
+                        <label for="admin-stock-item-code">Código</label>
+                        <input type="text" id="admin-stock-item-code" readonly disabled style="background: var(--bg-secondary); cursor: not-allowed;">
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-stock-item-meat">Tipo de Carne</label>
+                        <input type="text" id="admin-stock-item-meat" readonly disabled style="background: var(--bg-secondary); cursor: not-allowed;">
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-stock-item-weight">Peso (kg)</label>
+                        <input type="number" id="admin-stock-item-weight" step="0.001" min="0" placeholder="0.000">
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-stock-item-price">Preço Fixo (R$)</label>
+                        <input type="number" id="admin-stock-item-price" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-stock-item-status">Status *</label>
+                        <select id="admin-stock-item-status" required>
+                            <option value="available">Disponível</option>
+                            <option value="reserved">Reservado</option>
+                            <option value="picked_up">Retirado</option>
+                            <option value="canceled">Cancelado</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary"><i class="bi bi-check-lg"></i> Salvar</button>
+                        <button type="button" onclick="closeModal('admin-stock-item-modal')" class="btn-secondary"><i class="bi bi-x-lg"></i> Cancelar</button>
                     </div>
                 </form>
             </div>

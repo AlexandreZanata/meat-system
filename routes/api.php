@@ -44,8 +44,11 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('meats', AdminMeatController::class);
 
             // Meat Items
+            Route::get('/meat-items', [MeatItemController::class, 'index']);
+            Route::get('/meat-items/{meatItem}', [MeatItemController::class, 'show']);
             Route::post('/meat-items/bulk', [MeatItemController::class, 'bulk']);
             Route::patch('/meat-items/{meatItem}', [MeatItemController::class, 'update']);
+            Route::delete('/meat-items/{meatItem}', [MeatItemController::class, 'destroy']);
 
             // Available Dates
             Route::apiResource('available-dates', AvailableDateController::class);
